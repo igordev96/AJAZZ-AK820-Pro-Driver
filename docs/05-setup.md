@@ -107,6 +107,10 @@ applies what is inside the uploaded folder. They set `X-Content-Type-Options`, `
 and `Permissions-Policy: hid=(self)`. WebHID permission belongs to the origin, so a device allowed
 on localhost is not automatically allowed on the deployed site. Connect once on each origin.
 
+Netlify's deploy badge is not in the README. It reports the newest deploy on the production branch,
+which is now the skipped build from a push to `main`, so it would read as cancelled between
+releases. The README shows the Release workflow instead.
+
 The app has no routes or server functions, so there are no redirect rules. `dist/` is generated
 and never committed.
 

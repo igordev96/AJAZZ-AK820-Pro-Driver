@@ -1,7 +1,7 @@
 # AK820 Pro WebHID configurator
 
 [![CI](https://github.com/igordev96/AK820-WebHID/actions/workflows/ci.yml/badge.svg)](https://github.com/igordev96/AK820-WebHID/actions/workflows/ci.yml)
-[![Netlify deploy status](https://api.netlify.com/api/v1/badges/453ffc69-2e90-4f4b-a2c5-5d7e4616ca22/deploy-status)](https://app.netlify.com/sites/ak820-webhid/deploys)
+[![Release](https://github.com/igordev96/AK820-WebHID/actions/workflows/release.yml/badge.svg)](https://github.com/igordev96/AK820-WebHID/actions/workflows/release.yml)
 [![version](https://img.shields.io/github/package-json/v/igordev96/AK820-WebHID?color=d3a64c&label=version)](https://github.com/igordev96/AK820-WebHID/releases)
 [![license](https://img.shields.io/github/license/igordev96/AK820-WebHID?color=d3a64c)](LICENSE)
 
