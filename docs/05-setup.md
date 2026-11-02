@@ -47,6 +47,14 @@ That runs all five steps in order:
 | tests | `npm run test` | Vitest, React Testing Library, fake HID device |
 | build | `npm run build` | typecheck, then `vite build` |
 
+`npm install` points git at `.githooks`, so every commit runs `format:check` and `lint` first. Both
+only read: when one fails the commit stops and nothing gets rewritten under you. Run
+`npm run format` and commit again. `npm run hooks` re-applies the setting if a fresh clone misses
+it.
+
+CI runs the same `npm run verify` on Node 22 and Node 24, because the README promises Node 22.12 or
+newer and the build should not depend on the newer one.
+
 `npm run format` applies the formatter. Tests do not need a keyboard: `src/test/hidFakes.ts`
 provides a fake clock, a fake transport, and the app tests install a fake `navigator.hid`.
 
@@ -68,34 +76,38 @@ not. And the editor suggests the `**:` descendant variant in place of `[&_select
 suggestion from the editor in the browser before trusting it.
 
 GitHub Actions runs the same `npm run verify` on every push to `main` and every pull request. The
-workflow is `.github/workflows/ci.yml`. Netlify builds `main` after the push, and its deploy status
-badge is in the README.
+workflow is `.github/workflows/ci.yml`. It does not deploy anything.
 
 The build fails on a type error because `build` runs `tsc --noEmit` before Vite.
 
 ## 4. Deployment
 
-`netlify.toml` builds the site:
+A tag ships. `.github/workflows/release.yml` runs on `v*` and does three things in order: it
+verifies the tagged commit, uploads `dist/` to Netlify with the CLI, and publishes the GitHub
+release.
 
-```toml
-[build]
-  command = "npm run build"
-  publish = "dist"
+That means a push to `main` never reaches production. The production site is
+<https://ak820-webhid.netlify.app/> and it always matches the newest tag.
 
-[build.environment]
-  NODE_VERSION = "24"
-```
+The release notes come from the tag. Its first line is the title, the body is the summary, and
+GitHub's generated commit list follows both. `npm run release -- minor notes.md` writes the bump,
+the commit and the annotated tag; pushing the tag starts the workflow.
+
+Two things live outside the repository:
+
+- `NETLIFY_AUTH_TOKEN` in the repository's Actions secrets. The release job stops before deploying
+  and names the secret if it is missing. The site id is in the workflow and is not secret.
+- Netlify's own production builds are switched off in the site settings, so the CLI is the only
+  thing that publishes. Pull-request previews stay on, and `netlify.toml` still describes the build
+  for them.
+
+Response headers live in `public/_headers`, not in `netlify.toml`, because a CLI deploy only
+applies what is inside the uploaded folder. They set `X-Content-Type-Options`, `Referrer-Policy`
+and `Permissions-Policy: hid=(self)`. WebHID permission belongs to the origin, so a device allowed
+on localhost is not automatically allowed on the deployed site. Connect once on each origin.
 
 The app has no routes or server functions, so there are no redirect rules. `dist/` is generated
 and never committed.
-
-The response headers set `X-Content-Type-Options`, `Referrer-Policy` and
-`Permissions-Policy: hid=(self)`. WebHID permission belongs to the origin, so a device allowed on
-localhost is not automatically allowed on the deployed site. Connect once on each origin.
-
-The Netlify deploy itself is not part of `npm run verify`. Check the production build locally with
-`npm run build` and `npm run preview` before merging to `main`. The public site is
-<https://ak820-webhid.netlify.app/>, deployed from `main`.
 
 ## 5. Before connecting
 

@@ -243,11 +243,18 @@ keyboard. [docs/04-code-map.md](docs/04-code-map.md) maps the modules and the te
 
 ## Deployment
 
-`netlify.toml` runs `npm run build` on Node 24 and publishes `dist/`. There are no redirects or
-server functions. WebHID permission belongs to the origin, so the localhost and deployed origins
-keep separate device permissions. The public site is <https://ak820-webhid.netlify.app/>, deployed
-from `main`. Netlify builds each push to `main`; the deploy badge in the README reports the latest
-build.
+A tag ships. Pushing `v*` runs `.github/workflows/release.yml`, which verifies the tagged commit,
+uploads `dist/` to Netlify and publishes the release notes. A push to `main` never reaches
+production, so the live site always matches the newest tag.
+
+The notes come from the annotated tag: the first line is the title, the body is the summary, then
+GitHub's generated list of commits. `npm run release -- minor notes.md` writes the version bump,
+the commit and the tag.
+
+WebHID permission belongs to the origin, so the localhost and deployed origins keep separate device
+permissions. The public site is <https://ak820-webhid.netlify.app/>. Pull requests still get a
+Netlify preview; `netlify.toml` describes that build, and response headers live in
+`public/_headers` so they survive a CLI deploy.
 
 ## Documentation
 

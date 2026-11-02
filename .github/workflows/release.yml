@@ -1,0 +1,87 @@
+name: Release
+
+# A tag is the only thing that ships: this job verifies the commit, deploys the
+# build to Netlify and publishes the release notes.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Verify, deploy and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # The annotated tag message becomes the release summary, and the
+          # generated notes walk the history back to the previous tag.
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Verify and build
+        run: npm run verify
+
+      - name: Check the Netlify token
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: |
+          if [ -z "$NETLIFY_AUTH_TOKEN" ]; then
+            printf '::error::NETLIFY_AUTH_TOKEN is missing. Add it under Settings, Secrets and variables, Actions.\n'
+            exit 1
+          fi
+
+      - name: Deploy to Netlify
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: |
+          npx --yes netlify-cli@27.16.2 deploy \
+            --prod \
+            --dir=dist \
+            --site=453ffc69-2e90-4f4b-a2c5-5d7e4616ca22 \
+            --message "Release $GITHUB_REF_NAME"
+
+      - name: Compose the release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          title="$(git tag -l --format='%(contents:subject)' "$tag")"
+          summary="$(git tag -l --format='%(contents:body)' "$tag")"
+          generated="$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f tag_name="$tag" --jq .body)"
+
+          {
+            if [ -n "$summary" ]; then
+              printf '%s\n\n' "$summary"
+            fi
+            printf '%s\n' "$generated"
+          } > release-notes.md
+
+          printf 'RELEASE_TITLE=%s\n' "${title:-$tag}" >> "$GITHUB_ENV"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --verify-tag \
+            --title "$RELEASE_TITLE" \
+            --notes-file release-notes.md
