@@ -1,6 +1,11 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  # Git builds exist for pull-request previews: production is deployed by
+  # .github/workflows/release.yml from a tag. An ignore command that exits 0
+  # cancels the build, so a push to main stops here. If CONTEXT is ever unset
+  # this exits 1 and builds, which is the old behaviour rather than no site.
+  ignore = "test \"$CONTEXT\" = \"production\""
 
 [build.environment]
   NODE_VERSION = "24"

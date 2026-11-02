@@ -97,9 +97,10 @@ Two things live outside the repository:
 
 - `NETLIFY_AUTH_TOKEN` in the repository's Actions secrets. The release job stops before deploying
   and names the secret if it is missing. The site id is in the workflow and is not secret.
-- Netlify's own production builds are switched off in the site settings, so the CLI is the only
-  thing that publishes. Pull-request previews stay on, and `netlify.toml` still describes the build
-  for them.
+- Netlify's branch settings stay at their defaults: production branch `main`, branch deploys none,
+  deploy previews on. Production builds are cancelled by the `ignore` command in `netlify.toml`,
+  which exits 0 when `CONTEXT` is `production`, so a push to `main` stops at the build step while a
+  pull request still gets a preview.
 
 Response headers live in `public/_headers`, not in `netlify.toml`, because a CLI deploy only
 applies what is inside the uploaded folder. They set `X-Content-Type-Options`, `Referrer-Policy`
