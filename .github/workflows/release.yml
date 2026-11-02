@@ -63,8 +63,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="$GITHUB_REF_NAME"
-          title="$(git tag -l --format='%(contents:subject)' "$tag")"
-          summary="$(git tag -l --format='%(contents:body)' "$tag")"
+          kind="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --jq .object.type)"
+          if [ "$kind" != "tag" ]; then
+            printf '::error::%s is a lightweight tag. Releases use annotated tags.\n' "$tag"
+            exit 1
+          fi
+
+          # The checkout can leave a lightweight tag behind, so the message comes
+          # from the API. Its first line is the title and the rest is the summary.
+          sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --jq .object.sha)"
+          message="$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$sha" --jq .message)"
+          title="$(printf '%s\n' "$message" | head -n 1)"
+          summary="$(printf '%s\n' "$message" | tail -n +2 | sed '/./,$!d')"
+
           generated="$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
             -f tag_name="$tag" --jq .body)"
 
@@ -81,7 +92,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --verify-tag \
-            --title "$RELEASE_TITLE" \
-            --notes-file release-notes.md
+          # Re-running a failed job must update the release, not fail on it.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" \
+              --title "$RELEASE_TITLE" \
+              --notes-file release-notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --verify-tag \
+              --title "$RELEASE_TITLE" \
+              --notes-file release-notes.md
+          fi
