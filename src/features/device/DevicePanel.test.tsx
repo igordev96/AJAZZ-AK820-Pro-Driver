@@ -46,7 +46,7 @@ describe('DevicePanel', () => {
     const user = userEvent.setup();
     renderPanel({ onApply });
 
-    await choose(user, 'Key response time', 'Level 3, 8-9 ms');
+    await choose(user, 'Key response time', 'Level 3');
     await choose(user, 'Sleep time', '30 minutes');
     await user.click(screen.getByRole('button', { name: 'Apply settings' }));
 

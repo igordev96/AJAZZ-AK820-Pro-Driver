@@ -104,7 +104,7 @@ export function DevicePanel({ connected, busy, status, onApply }: DevicePanelPro
               <SelectContent>
                 {RESPONSE_LEVELS.map((level) => (
                   <SelectItem key={level.level} value={String(level.level)}>
-                    Level {level.level}, {level.wired}
+                    Level {level.level}
                   </SelectItem>
                 ))}
               </SelectContent>
