@@ -23,7 +23,7 @@ export function ScreenPreview({ time, connected }: ScreenPreviewProps) {
     <figure className="rounded-panel border border-line bg-surface p-4">
       <div className="w-full">
         <div className="rounded-[14px] border border-line/80 bg-surface-2 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-          <div className="overflow-hidden rounded-control border border-black/60 bg-[#05080a]">
+          <div className="overflow-hidden rounded-control border border-ink/60 bg-[#05080a]">
             <svg
               viewBox="0 0 128 128"
               role="img"

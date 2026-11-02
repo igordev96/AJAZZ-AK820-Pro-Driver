@@ -115,7 +115,7 @@ export function KeymapBoard({ rows, layer, selected, disabled, onSelect }: Keyma
                     {pending && !locked ? (
                       <span
                         aria-hidden="true"
-                        className="absolute right-[3px] top-[3px] size-[5px] rounded-full bg-brass"
+                        className="absolute right-0.75 top-0.75 size-1.25 rounded-full bg-brass"
                       />
                     ) : null}
                     <span

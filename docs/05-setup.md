@@ -57,6 +57,16 @@ seconds to build the design system; after that it is cached and the whole lint s
 second. If the stylesheet moves, update `settings.tailwindcss.entryPoint` in `.oxlintrc.json`; the
 plugin reports exactly which path it tried if the setting is wrong.
 
+Sort order is left to oxfmt, and three rules stay off on purpose: logical properties (the app is
+LTR only), a blanket ban on arbitrary values (the small type sizes and inset shadows need them),
+and class line wrapping.
+
+Two blind spots are worth knowing. Strings passed as an object to a component, such as
+react-day-picker's `classNames`, are not extracted, so the editor sees them and the linter does
+not. And the editor suggests the `**:` descendant variant in place of `[&_selector]`; with Tailwind
+4.3.3 the build does not apply that form, so `[&_…]` stays until the toolchain agrees. Check a
+suggestion from the editor in the browser before trusting it.
+
 GitHub Actions runs the same `npm run verify` on every push to `main` and every pull request. The
 workflow is `.github/workflows/ci.yml`. Netlify builds `main` after the push, and its deploy status
 badge is in the README.

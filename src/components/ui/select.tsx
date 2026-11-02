@@ -42,7 +42,7 @@ function SelectContent({
         position="popper"
         sideOffset={4}
         className={cn(
-          'z-50 max-h-72 w-[var(--radix-select-trigger-width)] overflow-hidden rounded-panel border border-line bg-surface text-ivory shadow-[0_16px_40px_rgba(0,0,0,0.55)]',
+          'z-50 max-h-72 w-(--radix-select-trigger-width) overflow-hidden rounded-panel border border-line bg-surface text-ivory shadow-[0_16px_40px_rgba(0,0,0,0.55)]',
           className,
         )}
         {...props}

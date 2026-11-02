@@ -9,15 +9,23 @@
   "rules": {
     "react/react-in-jsx-scope": "off",
     "import/no-unassigned-import": "off",
-    "tailwindcss/no-unknown-classes": "error",
     "tailwindcss/no-conflicting-classes": "error",
+    "tailwindcss/no-contradicting-variants": "error",
+    "tailwindcss/no-dark-without-light": "error",
     "tailwindcss/no-duplicate-classes": "error",
     "tailwindcss/no-dynamic-classes": "error",
+    "tailwindcss/no-unknown-classes": "error",
     "tailwindcss/enforce-canonical": "error",
+    "tailwindcss/enforce-negative-arbitrary-values": "error",
     "tailwindcss/no-deprecated-classes": "error",
     "tailwindcss/no-unnecessary-arbitrary-value": "error",
+    "tailwindcss/consistent-variant-order": "error",
+    "tailwindcss/enforce-consistent-important-position": "error",
+    "tailwindcss/enforce-consistent-variable-syntax": "error",
+    "tailwindcss/enforce-shorthand": "error",
+    "tailwindcss/no-unnecessary-whitespace": "error",
     "tailwindcss/prefer-scale-token": "error",
-    "tailwindcss/enforce-shorthand": "error"
+    "tailwindcss/no-default-palette": "error"
   },
   "settings": {
     "tailwindcss": {
