@@ -481,3 +481,33 @@ Right point opposite ways, and that Up and Down still work.
 The capabilities per mode come from `config_func` in the vendor database: brightness, speed,
 horizontal direction, vertical direction, colour and Colourful. Colourful is on by default for every
 mode except Static, which matches the vendor app.
+
+## Test 17 — device settings (2 Nov 2026)
+
+Build: the working tree at `c2ba541` (the Device tab), dev server on `http://localhost:5173`, Chrome
+on Windows.
+
+The user applied settings from the **Device** view and the panel reported **Sent.** every time. One
+write is:
+
+```
+04 18
+04 17 01 .. 01              announce, one 64-byte chunk
+00 01 00 00 00 00 02 00 01 .. AA 55
+04 02
+```
+
+What the user reported, one setting at a time:
+
+- **Disable Windows key**: the key was blocked while the box was ticked, and worked again when it
+  was cleared.
+- **Disable Alt+F4**: the window stopped closing while it was on, and closed again when it was off.
+- **Disable Alt+Tab**: switching windows stopped while it was on, and worked again when it was off.
+- **Sleep time**: set to 1 minute and the transfer was accepted. The board was not left idle long
+  enough to see it sleep.
+- **Response level**: changed and accepted. The difference in typing was not measured.
+
+No problem surfaced in the session. The three shortcut blocks are the part this test proves.
+
+Not tested: whether the board sleeps after the interval, and whether the response levels feel
+different. Nothing in the UI or the README claims either.

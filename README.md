@@ -35,8 +35,10 @@ this computer's time and a time picked by hand. Test 11 added the screen data ch
 block count was fixed. Test 14 showed that interrupting an upload wedges the keyboard until it is
 unplugged, so the animation card has no cancel. Test 15 added the solid-colour light and brightness,
 confirmed on the board after a commit-timing fix. Test 16 added the 20 effects with colour, speed and
-direction; every mode worked, and a left/right direction bug was found and fixed. The work after
-Test 16 changed only the interface, so it has no hardware test of its own.
+direction; every mode worked, and a left/right direction bug was found and fixed. The interface
+work that followed changed no bytes, so it has no hardware test. Test 17, on 2 Nov 2026, added the
+five device settings: the three shortcut blocks work, and the sleep and response-time writes were
+accepted, though their effects were not observed.
 [docs/02-hardware-tests.md](docs/02-hardware-tests.md) records the evidence.
 
 ## What it does

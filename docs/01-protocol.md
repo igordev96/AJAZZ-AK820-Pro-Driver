@@ -460,4 +460,7 @@ last sent.
 **Unknowns.** Bytes 5 and 7 never left zero in any capture, and announce byte 2 is `01` in every
 settings write while the clock announce has `00` there. They are kept at their captured values.
 
+Confirmed on the board in `docs/02-hardware-tests.md` Test 17: the three shortcut blocks work, and
+the sleep and response writes are accepted, though those two effects were not observed.
+
 
