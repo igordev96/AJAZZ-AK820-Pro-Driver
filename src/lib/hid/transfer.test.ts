@@ -1,5 +1,6 @@
 import { FACTORY_KEYS, buildTable } from '@/lib/keymap';
 import { buildLightRecord } from '@/lib/lighting';
+import { buildSettingsRecord } from '@/lib/device';
 import type { HidReadResult } from '@/lib/hid/client';
 import { SCREEN_BLOCK_SIZE, SCREEN_FRAME_BYTES, buildAnimationPayload } from '@/lib/screen';
 import { FakeClock, FakeTransport, reply } from '@/test/hidFakes';
@@ -393,5 +394,54 @@ describe('TransferService lighting', () => {
     const { service } = makeService();
 
     await expect(service.sendLighting(new Uint8Array(10))).rejects.toThrow('64');
+  });
+});
+
+describe('TransferService settings', () => {
+  const settings = buildSettingsRecord({
+    responseLevel: 4,
+    sleep: 3,
+    disableAltTab: true,
+    disableAltF4: false,
+    disableWindowsKey: true,
+  });
+
+  it('stages one record under 04 17 and commits, with no end command', async () => {
+    const { service, transport } = makeService([
+      reply(0x18, 0x01),
+      reply(0x17, 0x01),
+      reply(0x02, 0x01),
+    ]);
+
+    const result = await service.sendSettings(settings);
+
+    expect(result.steps.map((step) => step.step)).toEqual(['begin', 'announce', 'commit']);
+    expect(isTransportFailed(result.steps)).toBe(false);
+    expect(transport.sent).toHaveLength(4);
+    expect(bytes(transport.sent[0] ?? new Uint8Array())).toEqual([0x04, 0x18]);
+
+    const announce = transport.sent[1] ?? new Uint8Array();
+    expect(bytes(announce.subarray(0, 3))).toEqual([0x04, 0x17, 0x01]);
+    expect(announce[8]).toBe(1);
+
+    expect(bytes(transport.sent[2] ?? new Uint8Array())).toEqual(bytes(settings));
+    expect(bytes(transport.sent[3] ?? new Uint8Array())).toEqual([0x04, 0x02]);
+  });
+
+  it('refuses a record that is not 64 bytes', async () => {
+    const { service } = makeService();
+
+    await expect(service.sendSettings(new Uint8Array(10))).rejects.toThrow('64');
+  });
+
+  it('shares the lock with a table transfer', async () => {
+    const { service } = makeService(topReplies());
+
+    const first = service.sendTable(table, 'top');
+    const second = await service.sendSettings(settings);
+    await first;
+
+    expect(second).toEqual({ steps: [], busy: true });
+    expect(service.isBusy).toBe(false);
   });
 });

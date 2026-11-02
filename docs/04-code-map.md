@@ -18,6 +18,7 @@ src/lib/keymap/          constants, factory keys, record encoding, names, parsin
 src/lib/hid/             protocol, client, collections, WebHID types, transfer, time, probes, raw
 src/lib/screen/          RGB565, frame layout, animation payload
 src/lib/lighting/        the 64-byte record, preview motion, accepted-light wording
+src/lib/device/          the 64-byte settings record, response levels, sleep options
 src/lib/editor/          row state, reducer, validation, persistence
 src/lib/settings/        remembered view, clock mode and light settings
 src/lib/clock.ts         Clock type and the real timer

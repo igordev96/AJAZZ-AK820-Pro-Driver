@@ -1,5 +1,6 @@
 import type { Clock } from '@/lib/clock';
 import { realClock } from '@/lib/clock';
+import { SETTINGS_RECORD_SIZE } from '@/lib/device';
 import { hex } from '@/lib/format';
 import { TABLE_SIZE } from '@/lib/keymap';
 import { SCREEN_BLOCK_SIZE, SCREEN_BLOCKS_PER_FRAME } from '@/lib/screen';
@@ -122,6 +123,38 @@ export class TransferService {
         steps: await this.runSequence({
           announce: COMMANDS.time,
           body,
+          chunkCount: 1,
+          sendEnd: false,
+        }),
+      };
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  /**
+   * Writes the device settings record: response level, sleep time and the three
+   * disabled shortcuts. Captured on 2 Nov 2026; the vendor app stages one
+   * 64-byte record and commits, with no end command:
+   *
+   *   04 18  →  04 17 01 (byte 8 = 1)  →  the record  →  04 02
+   */
+  async sendSettings(record: Uint8Array): Promise<TransferResult> {
+    if (record.length !== SETTINGS_RECORD_SIZE) {
+      throw new Error(`settings record must be ${SETTINGS_RECORD_SIZE} bytes`);
+    }
+
+    if (this.busy) {
+      this.log('a transfer is already running — ignoring this request', 'warn');
+      return { steps: [], busy: true };
+    }
+
+    this.busy = true;
+    try {
+      return {
+        steps: await this.runSequence({
+          announce: COMMANDS.settings,
+          body: record,
           chunkCount: 1,
           sendEnd: false,
         }),

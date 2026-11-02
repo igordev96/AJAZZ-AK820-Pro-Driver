@@ -405,3 +405,59 @@ stopped an intermittent unconfirmed commit at brightness 2.
 Per-key colours use a different path: `04 23` with nine chunks and a 576-byte table, 4 bytes per
 key slot. Its inner format is not implemented.
 
+---
+
+## 12. Device settings
+
+Captured from the vendor app on 2 Nov 2026, one setting changed per run. The page has five settings:
+Key Response Time, Sleep Time, Disable Windows Key, Disable ALT + F4 and Disable ALT + TAB.
+
+Like a light, they travel as one 64-byte record, but with `04 17` and **no end command**:
+
+```
+04 18
+04 17 01 00 00 00 00 00 01      announce, byte 2 = 01, byte 8 = one chunk
+00 01 00 00 00 00 02 00 01 ...  the record
+04 02
+```
+
+The record:
+
+| Offset | Meaning |
+|---|---|
+| 0 | fixed `00` |
+| 1 | fixed `01` |
+| 2 | disable ALT + TAB, 1 or 0 |
+| 3 | disable ALT + F4, 1 or 0 |
+| 4 | disable Windows key, 1 or 0 |
+| 5 | zero in every capture, meaning unknown |
+| 6 | sleep: 0 no sleep, 1 one minute, 2 five minutes, 3 thirty minutes |
+| 7 | zero in every capture, meaning unknown |
+| 8 | Key Response Time, 1-5 |
+| 9-61 | zero |
+| 62-63 | `AA 55` |
+
+**The record is a snapshot, not a patch.** Toggling only the Windows key still sent byte 8 with the
+current response level, and every other field at its current value. A zero means "off" or "no
+sleep", not "leave alone", so a write that omits a field turns it off on the keyboard. The page
+therefore always sends all five fields together.
+
+The three shortcut flags are separate bytes, not bits of one. The responses to the captures:
+
+| Change | Bytes that moved |
+|---|---|
+| level 1 to 5 | 8: `01` to `05` |
+| 5 min to No Sleep | 6: `02` to `00` |
+| 1 min, 30 min | 6: `01`, `03` |
+| disable Windows key | 4: `00` to `01` |
+| disable ALT + F4 | 3: `00` to `01` |
+| disable ALT + TAB | 2: `00` to `01` |
+
+The vendor app writes the clock (`04 28`) on startup in the same capture, which matches §9. It does
+not write settings on startup, so there is no read-back to lean on: the page can only show what it
+last sent.
+
+**Unknowns.** Bytes 5 and 7 never left zero in any capture, and announce byte 2 is `01` in every
+settings write while the clock announce has `00` there. They are kept at their captured values.
+
+
