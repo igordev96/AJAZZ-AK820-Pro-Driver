@@ -1,6 +1,6 @@
 {
   "name": "ak820-webhid",
-  "version": "2.7.1",
+  "version": "2.8.0",
   "private": true,
   "description": "Unofficial WebHID configurator for the AJAZZ AK820 Pro",
   "license": "MIT",
