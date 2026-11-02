@@ -50,6 +50,16 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /upload 1 change/i })).toBeDisabled();
   });
 
+  it('opens the device view', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('tab', { name: 'Device' }));
+
+    expect(await screen.findByRole('button', { name: 'Apply settings' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Bluetooth' })).toBeInTheDocument();
+  });
+
   it('links to the repository', () => {
     render(<App />);
 

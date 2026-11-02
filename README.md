@@ -158,6 +158,19 @@ effect that reacts to typing cannot be shown: the panel never sees which key you
 
 Per-key colours are not built yet.
 
+### Device settings
+
+**Device** covers the five settings the vendor app keeps under System Settings: the key response
+time, the sleep time, and blocks on the Windows key, Alt+F4 and Alt+Tab. The response time has five
+levels, from about 2 ms to 18 ms over USB; the tab lists the vendor's figures for all three links,
+though only the USB column applies to this page.
+
+The keyboard takes a snapshot, not a patch, so one write always sends all five values together. A
+field left out is turned off rather than left alone.
+
+There is no read-back for any of them either. The page shows what it is about to send, never what
+the board currently holds.
+
 **Advanced** opens the diagnostics, the deep probe, the mailbox probe and a raw command tab.
 These send test commands and never write a keymap. Uploads are locked while one of them runs.
 

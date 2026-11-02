@@ -23,7 +23,7 @@ src/lib/editor/          row state, reducer, validation, persistence
 src/lib/settings/        remembered view, clock mode and light settings
 src/lib/clock.ts         Clock type and the real timer
 src/lib/format.ts        hex formatting
-src/features/device/     useDevice, AppHeader, ViewTabs
+src/features/device/     useDevice, AppHeader, ViewTabs, DevicePanel
 src/features/editor/     LayerTabs, KeymapBoard, KeyInspector, PendingBar, WriteRules, keyLabels
 src/features/screen/     ScreenPanel, ScreenPreview, ClockCard, DateTimePicker, AnimationCard
 src/features/lighting/   LightingPanel, LightPreview
@@ -208,6 +208,12 @@ flip are tested without a keyboard. Effects that react to a key press are not mo
 has no keystroke to react to. After a confirmed commit, `src/lib/lighting/describe.ts` writes the
 confirmation and the log line from the mode's own flags, so a mode without a speed control never
 reports one, and a mode that cycles through colours never promises the picker's hex.
+
+The **Device** view is two columns. The left one is the vendor's response-time table, all three
+links, with the selected level in ivory so the numbers can be compared before choosing. The right
+one holds the two selects and the three checkboxes, and one Apply writes them together, because the
+record is a snapshot. `src/lib/device` holds the record, the option lists and the wording, and
+`docs/01-protocol.md` §12 holds the captured layout.
 
 `AdvancedDrawer` is a `Sheet`: a Radix dialog that slides in from the right, traps focus, locks the
 page scroll and returns focus to the Advanced button on close. Escape and a click on the overlay

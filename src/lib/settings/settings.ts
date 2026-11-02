@@ -11,7 +11,7 @@ export const SETTINGS_STORE = 'ak820.settings';
 
 const VERSION = 1;
 
-export type View = 'keys' | 'screen' | 'light';
+export type View = 'keys' | 'screen' | 'light' | 'device';
 
 export type ClockMode = 'now' | 'custom';
 
@@ -90,7 +90,7 @@ export function readSettings(text: string | null): Settings {
   return {
     lighting: readLighting(raw.lighting),
     clock: { mode: clock === 'custom' ? 'custom' : 'now' },
-    view: view === 'screen' || view === 'light' ? view : 'keys',
+    view: view === 'screen' || view === 'light' || view === 'device' ? view : 'keys',
   };
 }
 

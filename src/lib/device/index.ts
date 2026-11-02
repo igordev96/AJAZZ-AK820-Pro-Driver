@@ -6,3 +6,5 @@ export {
   buildSettingsRecord,
 } from './settings';
 export type { DeviceSettings, ResponseLevel, SleepIndex } from './settings';
+export { describeSettings } from './describe';
+export type { SettingsDescription } from './describe';

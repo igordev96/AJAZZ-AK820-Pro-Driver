@@ -11,6 +11,11 @@ const views = [
     label: 'Lighting',
     note: 'Pick one of the 20 effects and set the controls it offers.',
   },
+  {
+    id: 'device',
+    label: 'Device',
+    note: 'Set the response time, the sleep time and the shortcuts to block.',
+  },
 ] as const;
 
 type ViewTabsProps = {

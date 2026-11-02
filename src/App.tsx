@@ -21,6 +21,7 @@ import { WriteRules } from '@/features/editor/WriteRules';
 import { LogPanel } from '@/features/log/LogPanel';
 import { useLog } from '@/features/log/useLog';
 import type { LightingStatus, LightingValues } from '@/features/lighting/LightingPanel';
+import type { DeviceStatus } from '@/features/device/DevicePanel';
 import type { ScreenStatus } from '@/features/screen/AnimationCard';
 import type { TimeStatus } from '@/features/screen/ClockCard';
 import { realClock } from '@/lib/clock';
@@ -43,6 +44,7 @@ import { HidClient, STATUS, TransferService, formatClock, isTransportFailed } fr
 import { FN_LOCKED, buildTable } from '@/lib/keymap';
 import { buildLightRecord, describeLight } from '@/lib/lighting';
 import { buildAnimationPayload } from '@/lib/screen';
+import { buildSettingsRecord, describeSettings, type DeviceSettings } from '@/lib/device';
 
 // The three view panels and the drawer load on demand. A visitor who only remaps
 // keys never downloads the calendar, the lighting controls or the probes.
@@ -60,6 +62,10 @@ const LightingPanel = lazy(() =>
   import('@/features/lighting/LightingPanel').then((module) => ({
     default: module.LightingPanel,
   })),
+);
+
+const DevicePanel = lazy(() =>
+  import('@/features/device/DevicePanel').then((module) => ({ default: module.DevicePanel })),
 );
 
 function PanelLoading({ label }: { label: string }) {
@@ -119,6 +125,7 @@ export function App() {
   const view = useSettings((settings) => settings.view);
   const [timeStatus, setTimeStatus] = useState<TimeStatus>({ kind: 'idle' });
   const [lightingStatus, setLightingStatus] = useState<LightingStatus>({ kind: 'idle' });
+  const [deviceStatus, setDeviceStatus] = useState<DeviceStatus>({ kind: 'idle' });
   const [animationStatus, setAnimationStatus] = useState<ScreenStatus>({ kind: 'idle' });
   const [animationSending, setAnimationSending] = useState(false);
   const [animationProgress, setAnimationProgress] = useState<{
@@ -456,6 +463,71 @@ export function App() {
     [log, transfer],
   );
 
+  const handleApplySettings = useCallback(
+    async (values: DeviceSettings) => {
+      if (!transfer) {
+        log('Connect the keyboard first.', 'warn');
+        return;
+      }
+      if (busyRef.current) return;
+
+      busyRef.current = true;
+      setBusy(true);
+      setDeviceStatus({ kind: 'idle' });
+
+      try {
+        const record = buildSettingsRecord(values);
+        const result = await transfer.sendSettings(record);
+
+        if (result.busy) {
+          log('A transfer is already running.', 'warn');
+          return;
+        }
+
+        if (isTransportFailed(result.steps)) {
+          setDeviceStatus({
+            kind: 'err',
+            message:
+              'The settings may not have been sent. Check the shortcuts before trying again.',
+          });
+          log('The settings transfer stopped early. Check the keyboard.', 'err');
+          return;
+        }
+
+        const commit = result.steps.find((step) => step.step === 'commit');
+        const status = commit?.reply.status ?? null;
+
+        if (status === STATUS.ok) {
+          const { message, log: line } = describeSettings(values);
+          setDeviceStatus({ kind: 'ok', message });
+          log(line, 'ok');
+          return;
+        }
+
+        setDeviceStatus({
+          kind: 'err',
+          message:
+            'The keyboard did not confirm the settings. They may have applied anyway; check the shortcuts and apply again if not.',
+        });
+        log(
+          `Device settings not confirmed (${status === null ? 'no reply' : `0x${hex([status])}`}). They may still have applied.`,
+          'err',
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setDeviceStatus({
+          kind: 'err',
+          message: 'The settings could not be sent. Nothing changed.',
+        });
+        log(`Settings failed: ${message}`, 'err');
+      } finally {
+        busyRef.current = false;
+        setBusy(false);
+      }
+    },
+    [log, transfer],
+  );
+
   const handleOpenAdvanced = useCallback(() => {
     if (!connected || busyRef.current) return;
     setAdvancedMounted(true);
@@ -590,6 +662,19 @@ export function App() {
                   busy={busy}
                   status={lightingStatus}
                   onApply={handleApplyLight}
+                />
+              </div>
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="device">
+            <Suspense fallback={<PanelLoading label="device" />}>
+              <div className="mt-5 grid content-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+                <DevicePanel
+                  connected={connected}
+                  busy={busy}
+                  status={deviceStatus}
+                  onApply={handleApplySettings}
                 />
               </div>
             </Suspense>
