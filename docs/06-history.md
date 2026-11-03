@@ -73,6 +73,16 @@ WebHID won because it is the only option with zero install and a stable API for 
     the keyboard has it. The light preview follows the selected effect and stops under
     `prefers-reduced-motion`; it cannot show the effects that answer a key press. No bytes changed,
     so there is no new hardware test.
+15. **Device settings (v2.8.0)** — five captures on the board decoded the `04 17` record: response
+    level at byte 8, sleep at byte 6, and the three shortcut blocks at bytes 2, 3 and 4. It is a
+    snapshot rather than a patch, so every write carries all five values. Test 17 confirmed the
+    blocks in both directions; the sleep and response writes were accepted but their effects were
+    not observed.
+16. **2.4 GHz receiver (v2.9.0)** — the dongle (`0C45:FDFD`) exposes no feature reports, so it got a
+    second transport on `0xFF60/0x0061`: 33-byte output reports, a sum checksum, and one record per
+    frame. Key changes go one patch at a time, `0x03` on the top layer and `0x0D` on Fn, and nothing
+    comes back. Tests 18 to 20 confirmed the records, the patches and an 81-patch whole-map restore
+    on the board.
 
 ## 4. Lessons that cost time
 
@@ -98,6 +108,12 @@ WebHID won because it is the only option with zero install and a stable API for 
 * **Right-hand modifiers use the high bits.** `0x451CA0` maps `0xE0..0xE7` to
   `1,2,4,8,16,32,64,128`, not a repeat of the left-hand values. The old prose said otherwise; the
   encoder was already correct, and the docs were fixed during the React refactor.
+* **A quiet device may be waiting for its handshake.** The receiver ignored the light frame until
+  the page sent the vendor's init and heartbeat, with the same bytes and the same checksum that
+  failed before. Capture the startup burst before deciding a record itself is wrong.
+* **An unconfirmed write is not a confirmed one.** Over the dongle nothing comes back, so `applied`
+  moves when the frames go out and the log says the keyboard does not confirm them. The wired
+  wording, which reports an accepted commit, would be a claim the page cannot support there.
 * **A colour that encodes state cannot also decorate.** The first v2 build gave the Fn cap a brass
   edge for looks, while the legend says brass means a key differs from the factory table. The first
   question from the user was whether Fn had been remapped. Keep one meaning per visual signal.
