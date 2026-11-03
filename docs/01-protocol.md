@@ -549,8 +549,10 @@ and the key patches go to the same place the wired table goes. The five settings
 board is powered, so the page asks for another write after it has been switched off instead of
 implying the blocks stay.
 
+The screen has no channel on this link. The receiver exposes no `0xFF68` collection, so the page
+disables the animation card and tags it USB only while it is connected through the receiver. A
+firmware update could add one; nothing in the captures suggests one.
+
 ### Not known
 
-- Whether the screen channel exists on this link. There is no `0xFF68` collection, so the
-  animation card stays disabled.
 - What the receiver does with a malformed checksum. Nothing in the captures is malformed.

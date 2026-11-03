@@ -4,7 +4,8 @@ The editor assigns media functions (play/pause, volume, mute, track skip…) to 
 layer. This matters most on the Fn layer, which is what those keys are for.
 
 The encoding is **known and verified on hardware** (`docs/02-hardware-tests.md` Test 8): Mute, Volume up and
-Volume down all worked on the Fn layer, and clearing the slot restored the firmware default.
+Volume down all worked on the Fn layer, and clearing the slot restored the firmware default. Test 19
+sent Fn + A to Mute over the 2.4 GHz link as a single key patch, and that worked too.
 Nothing here needs more reverse engineering.
 
 Addresses refer to the vendor disassembly, which is kept in the private research repository and is
@@ -135,7 +136,8 @@ shows its volume OSD, so no music is needed.
 
 1. Fn tab → pick a key that is *not* `fnlayer_disable` (e.g. CapsLock #55 or F1 #2).
 2. Set it to **Media: Mute** in the picker (the raw box shows `c:0xE2`) and upload.
-   Expected log: `#55 Fn+CapsLock: default → Media: Mute c:0xE2`, then `commit 0x01`.
+   Expected log: `#55 Fn+CapsLock: default → Media: Mute c:0xE2`, then `commit 0x01`. Over the
+   2.4 GHz link the page sends one patch instead, and the log says the keyboard does not confirm it.
 3. Press `Fn+CapsLock`. Expected: the Windows mute OSD appears / audio mutes.
 4. If it works, try `0xE9` (Volume up) and `0xCD` (Play/Pause) on the same key.
 5. **Back to firmware default** → upload → the combination stops doing anything special.

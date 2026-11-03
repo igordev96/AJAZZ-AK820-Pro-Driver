@@ -119,7 +119,7 @@ and never committed.
 - **Close the AJAZZ desktop app.** Windows allows one program to hold the config interface.
   Symptom if not: `device.open()` fails, the app says the interface is unavailable, or every
   command returns `0xFF`.
-- Use **USB**, not Bluetooth.
+- Use **USB or the 2.4 GHz dongle**, not Bluetooth.
 - **Disconnect in the page before opening the vendor app again.**
 
 ## 6. Troubleshooting
@@ -128,7 +128,9 @@ and never committed.
 |---|---|
 | No device in the chooser | vendor app still running, Bluetooth mode, or a browser without WebHID |
 | “WebHID is not available in this browser” | Firefox, Safari or a mobile browser; use desktop Chrome, Edge or Opera |
-| “The configuration interface was not found” | USB mode, vendor app holding the device, or another AK820 variant |
+| “The configuration interface was not found” | neither the wired interface nor the receiver was exposed: USB mode, vendor app holding the device, or another AK820 variant |
+| The screen card is disabled and tagged **USB only** | expected over the 2.4 GHz receiver, which has no screen channel; use the cable |
+| Alt+F4 and Alt+Tab are disabled on the dongle | expected: the receiver does not apply those two blocks, and the vendor app does no better |
 | `device.open()` fails | the interface is already open elsewhere, or permission was denied |
 | `04 18` answers `0xFF` | another transfer is in flight, or another program holds the interface |
 | Chunk refused four times | the firmware is not in the data phase, usually after an aborted transfer; replug USB and retry |

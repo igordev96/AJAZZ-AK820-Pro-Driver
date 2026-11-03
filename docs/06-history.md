@@ -76,13 +76,13 @@ WebHID won because it is the only option with zero install and a stable API for 
 15. **Device settings (v2.8.0)** — five captures on the board decoded the `04 17` record: response
     level at byte 8, sleep at byte 6, and the three shortcut blocks at bytes 2, 3 and 4. It is a
     snapshot rather than a patch, so every write carries all five values. Test 17 confirmed the
-    blocks in both directions; the sleep and response writes were accepted but their effects were
-    not observed.
+    blocks in both directions; Test 24 later saw the sleep time and the response level take effect.
 16. **2.4 GHz receiver (v2.9.0)** — the dongle (`0C45:FDFD`) exposes no feature reports, so it got a
     second transport on `0xFF60/0x0061`: 33-byte output reports, a sum checksum, and one record per
     frame. Key changes go one patch at a time, `0x03` on the top layer and `0x0D` on Fn, and nothing
     comes back. Tests 18 to 20 confirmed the records, the patches and an 81-patch whole-map restore
-    on the board.
+    on the board. Tests 21 to 24 then mapped what the link will not do: the five settings reset at
+    power-on, the Alt+F4 and Alt+Tab blocks do nothing, and the screen has no channel at all.
 
 ## 4. Lessons that cost time
 
@@ -130,7 +130,8 @@ WebHID won because it is the only option with zero install and a stable API for 
 
 * Media/consumer records — **done and verified** (`docs/02-hardware-tests.md` Test 8); the `07 …` form was not
   needed.
-* `0x0D` record (`07 …`), internal types 5 and 8–11, macro records — undecoded, not needed.
+* `0x0D` is the Fn-layer key patch over the dongle, decoded in Tests 19 and 20. Internal types 5 and
+  8–11, and macro records, are undecoded and not needed.
 * Commit reply byte 4 (`0x77`) — unexplained.
 * `t_config_data.fn_layer` / `fn_switch` — unknown meaning.
 * The driver is a Vite and React app in `src/`. Vendor artwork, layout XML and the installer stay

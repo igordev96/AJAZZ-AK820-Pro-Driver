@@ -2,8 +2,8 @@
 
 This project is owned by igordev96. Be a collaborator, not an autopilot.
 
-The product is a Vite, React and TypeScript app in `src/`, deployed from `main` to Netlify. It
-reprograms a physical keyboard, so a bad change can leave the keyboard typing the wrong thing.
+The product is a Vite, React and TypeScript app in `src/`, deployed to Netlify from annotated tags.
+It reprograms a physical keyboard, so a bad change can leave the keyboard typing the wrong thing.
 Read the safety rules before editing anything that reaches the device.
 
 Vendor binaries, layout XML, artwork and the installer are not in this repository. The private
@@ -26,7 +26,8 @@ the tests in `src/`.
 Vite, React, TypeScript, Tailwind v4, shadcn/ui primitives, lucide-react and self-hosted IBM Plex
 through Fontsource. Netlify runs `npm run build` and publishes `dist/`. `dist/` is never committed.
 The page makes no analytics, telemetry or external asset requests. GitHub Actions runs
-`npm run verify` on `main` and pull requests (`.github/workflows/ci.yml`).
+`npm run verify` on `main` and pull requests (`.github/workflows/ci.yml`); a `v*` tag runs
+`.github/workflows/release.yml`, which verifies that commit, deploys it and publishes the notes.
 
 ## Ask before acting
 
@@ -34,6 +35,8 @@ Stop and ask for approval before:
 
 - changing the protocol constants, `FACTORY_KEYS`, `FN_LOCKED`, the keymap encoding,
   `buildTable`, `sendTable`, `waitReply` or the transfer sequence;
+- changing the 2.4 GHz frame layout, its checksum, `WIRELESS_COMMANDS`, `buildWirelessFrame`,
+  `toWirelessRecord`, `WirelessClient.sendKeys` or the per-key patch encoding;
 - writing to a physical keyboard. Say which layer and slot will be written and how to undo it;
 - adding a dependency or replacing a core library;
 - changing `netlify.toml`, the build output or deployment settings;
@@ -76,6 +79,17 @@ keyboard. The production build runs `tsc --noEmit` first, so a type error fails 
   StrictMode double-invokes effects in development, and a double upload is a hardware failure.
 - One transfer at a time. The busy lock lives in the transport service, not only in disabled
   buttons.
+- The page reaches the board over USB (`0xFF13`) or the 2.4 GHz receiver (`0xFF60/0x0061`), and
+  `useDevice` records which in `link`. The wired path uses `TransferService`; the receiver uses
+  `WirelessClient`, which writes 33-byte output reports, needs init and a heartbeat before its first
+  record, and receives no reply.
+- Over the receiver, `applied` moves when the frames are written, and the log says the keyboard does
+  not confirm them. Do not reuse the wired wording there.
+- The screen is USB only: the receiver has no `0xFF68` collection, so screen controls stay disabled
+  and tagged `USB only` on that link.
+- The five device settings are runtime state. The board resets them at power-on on both links, so
+  the page asks for another write after a power-off. Over 2.4 GHz the Alt+F4 and Alt+Tab blocks do
+  nothing, and the vendor app does no better, so they stay disabled there.
 - The 576-byte table, `AA 55` at 574-575, `idx <= 142`, the begin/announce/commit order, the
   220 ms settle and the 60 ms poll do not change.
 - On the Fn layer, zero means firmware default. Never seed it with factory keys.
@@ -96,15 +110,20 @@ Never guess a byte. The vendor app and its disassembly live in the private resea
 it in `src/lib`, and write the layout into `docs/01-protocol.md`. When the capture and the
 disassembly disagree, the capture wins.
 
+The 2.4 GHz receiver has its own captures (`re/captures/dongle-*.log`), and a wired frame proves
+nothing about it. Test a wireless command against a dongle capture before believing the record
+travels unchanged.
+
 A new command needs three things before it ships: a packet test, a fake-transport test that proves
 the sequence, and a dated hardware test. The mailbox is not evidence; the user looking at the
 keyboard is.
 
 ## Design work
 
-Load the `frontend-design` skill before reshaping the UI or adding a view. This project has a small
-visual language and has already paid for breaking it once: brass means "differs from factory", so
-it can never be decoration.
+Load the `frontend-design` skill before reshaping the UI or adding a view. Keep the visual language
+narrow. Brass is the accent, and on the keyboard board it means "this key differs from factory", so
+it never decorates. It also marks a control the current link cannot use (`USB only`); that second
+meaning is about availability, and errors stay rust.
 
 - Spend boldness in one place. Here that is the keyboard board and the 128 × 128 screen panel;
   everything around them stays quiet.
@@ -169,12 +188,14 @@ Never claim "works" from a `0x01` commit. Keep `docs/02-hardware-tests.md` factu
 
 The v2 rewrite is finished. `main` is the release line, each version has an annotated tag, and the
 site runs at https://ak820-webhid.netlify.app/. The keymap, HID transport and transfer service,
-editor, screen, lighting and the advanced drawer are in place, and `npm run verify` gates all of
-them.
+editor, screen, lighting, device settings and the advanced drawer are in place, and `npm run verify`
+gates all of them.
 
-Hardware evidence lives in `docs/02-hardware-tests.md`. Tests 9 to 16 cover the React rewrite, the
-screen clock, the animation channel and the light with its 20 effects. A release that changes a
-byte needs its own dated test; one that changes only the interface does not.
+Hardware evidence lives in `docs/02-hardware-tests.md`. Tests 9 to 24 cover the React rewrite, the
+screen clock and animation channel, the light with its 20 effects, the device settings, and the
+2.4 GHz receiver with its records, key patches and power-cycle behaviour. A release that changes a
+byte needs its own dated test; one that changes only the interface does not. `2.9.1` is the newest
+tag.
 
 The v1 `serve.js`, `start.cmd` and `tools/` JavaScript harnesses are gone; their last copy is in
 the `v1.0.1` tag. The npm scripts are the check path, and CI runs them. The root `index.html` is

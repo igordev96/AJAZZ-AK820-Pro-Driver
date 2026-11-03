@@ -14,8 +14,8 @@ nothing to install and no admin rights to ask for.
 
 ## Use it online
 
-Open <https://ak820-webhid.netlify.app/> in Chrome, Edge or Opera, with the keyboard on USB and the
-vendor app closed. That is the whole setup.
+Open <https://ak820-webhid.netlify.app/> in Chrome, Edge or Opera, with the keyboard on its USB
+cable or its 2.4 GHz dongle, and the vendor app closed. That is the whole setup.
 
 Source, issues and release notes: <https://github.com/igordev96/AK820-WebHID>.
 
@@ -38,7 +38,7 @@ confirmed on the board after a commit-timing fix. Test 16 added the 20 effects w
 direction; every mode worked, and a left/right direction bug was found and fixed. The interface
 work that followed changed no bytes, so it has no hardware test. Test 17, on 2 Nov 2026, added the
 five device settings: the three shortcut blocks work, and the sleep and response-time writes were
-accepted, though their effects were not observed. Test 18, on 3 Nov 2026, confirmed the 2.4 GHz
+accepted, though their effects were not observed at the time. Test 18, on 3 Nov 2026, confirmed the 2.4 GHz
 path: the light, the clock and the device settings reach the board through the receiver, once the
 page has sent the init and heartbeat frames it waits for. Test 19 confirmed key changes over the
 same link, one patch per key, with no confirmation from the keyboard, and Test 20 restored the whole
@@ -77,8 +77,8 @@ protocol, but they have not been tried.
 `FDFD` is the 2.4 GHz receiver. It has no feature reports, so the wired path cannot reach it; the
 page talks to it over `0xFF60/0x0061` with output reports instead, and sends the light, the clock,
 the device settings and key changes that way. Key changes go one at a time and the keyboard does
-not confirm them. The screen is not available on this link. The protocol is in
-[docs/01-protocol.md](docs/01-protocol.md) §13.
+not confirm them. The receiver has no screen channel, so the screen cards are USB only. The protocol
+is in [docs/01-protocol.md](docs/01-protocol.md) §13.
 
 ## What it cannot do
 
@@ -98,7 +98,7 @@ configuration interface.
 ## Requirements
 
 - Chrome, Edge or Opera on desktop. Firefox, Safari and mobile browsers do not support WebHID.
-- A USB connection. Bluetooth mode does not expose the interface.
+- The USB cable, or the 2.4 GHz dongle. Bluetooth mode does not expose the interface.
 - Close the AJAZZ desktop app while this page is connected.
 - Serve the page from `http://localhost` or HTTPS. WebHID needs a secure context.
 
@@ -124,8 +124,9 @@ npm run preview
 ## Using the editor
 
 The top layer is the table the keyboard types without Fn. Click a key, search for the new function
-under **Sends**, then upload. Every upload sends the full 576-byte table because the firmware has
-no single-key command. Click the selected key again to clear the inspector.
+under **Sends**, then upload. Every wired upload sends the full 576-byte table because the firmware
+has no single-key command; over the 2.4 GHz link the page sends one patch per changed key instead.
+Click the selected key again to clear the inspector.
 
 The Fn layer tab edits what each key does while Fn is held. Only the keys you change are written;
 every other slot stays zero, which means the firmware handles that combination. Six keys marked
@@ -179,8 +180,8 @@ Per-key colours are not built yet.
 
 **Device** covers the five settings the vendor app keeps under System Settings: the key response
 time, the sleep time, and blocks on the Windows key, Alt+F4 and Alt+Tab. The response time has five
-levels, from about 2 ms to 18 ms over USB; the tab lists the vendor's figures for all three links,
-though only the USB column applies to this page.
+levels, from about 2 ms to 18 ms over USB and 5 ms to 21 ms over 2.4 GHz; the tab lists the vendor's
+figures for all three links and says which column the current link uses.
 
 The keyboard takes a snapshot, not a patch, so one write always sends all five values together. A
 field left out is turned off rather than left alone.
