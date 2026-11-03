@@ -115,8 +115,9 @@ WebHID won because it is the only option with zero install and a stable API for 
   moves when the frames go out and the log says the keyboard does not confirm them. The wired
   wording, which reports an accepted commit, would be a claim the page cannot support there.
 * **A record and its storage are separate questions.** The light, the clock and the key patches came
-  back after a power cycle; the shortcut blocks did not (Test 21). A write that is accepted can
-  still be runtime state, so ask what happens after a power-on before promising anything lasts.
+  back after a power cycle; the shortcut blocks did not, over USB or over 2.4 GHz (Tests 21 and 22).
+  A write that is accepted can still be runtime state, so ask what happens after a power-on before
+  promising anything lasts.
 * **A colour that encodes state cannot also decorate.** The first v2 build gave the Fn cap a brass
   edge for looks, while the legend says brass means a key differs from the factory table. The first
   question from the user was whether Fn had been remapped. Keep one meaning per visual signal.

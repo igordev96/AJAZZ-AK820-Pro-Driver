@@ -532,13 +532,14 @@ Test 21 switched the keyboard off and on several times over the 2.4 GHz link. Th
 and the key map all came back as they were left. The device settings did not: the Windows key block
 was gone after the first power-on, and the key typed its shortcut again.
 
-The three records differ in what the board keeps. The light and the clock are written to storage on
-the keyboard, and the key patches go to the same place the wired table goes. The settings record
-looks like a runtime state that one power-on ends, which fits the vendor app writing it on every
-launch rather than offering a save. The page says so next to the settings, and offers the send again
-after the keyboard has been switched off.
+Test 22 did the same over USB, by unplugging the cable and by switching the keyboard off with the
+cable attached. The block was gone both times, so the reset belongs to the board and not to the
+transport.
 
-Whether the wired link behaves the same is not tested.
+The three records differ in what the board keeps. The light and the clock are stored on the keyboard,
+and the key patches go to the same place the wired table goes. The five settings exist only while the
+board is powered, so the page asks for another write after it has been switched off instead of
+implying the blocks stay.
 
 ### Not known
 

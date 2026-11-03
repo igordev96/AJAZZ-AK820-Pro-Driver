@@ -606,12 +606,38 @@ What did not:
 - **Device settings**: the Windows key block was gone after the first power-on, and the key typed
   its shortcut again.
 
-**Found.** The light and clock records and the key patches are written to something the keyboard
-keeps, while the settings record is not: it behaves like a runtime state that a power-on ends. That
-fits the vendor app, which writes the five values on every launch and has no save button for them.
+**Found.** The light and clock records and the key patches are written somewhere the keyboard keeps,
+while the settings record is not: it behaves like runtime state that a power-on ends.
 
 The page now says so under the settings and asks for another write after the keyboard has been
 powered off, since nothing is read back and it cannot notice the change on its own.
 
 Not tested: whether the wired link keeps the shortcuts through a power cycle, and whether the
 Alt+F4 and Alt+Tab blocks behave like the Windows key block.
+
+*Added later: Test 22 answered the first question. The wired link loses the block as well, so the
+reset is the board's, not the link's.*
+
+---
+
+## Test 22 — a power cycle clears the shortcut blocks over USB too (3 Nov 2026)
+
+Build: the same working tree as Test 21 (`d083ef7`), dev server on `http://localhost:5173`, Chrome on
+Windows, the keyboard over USB with the vendor app closed.
+
+The user sent the settings with the Windows key blocked, then power-cycled the keyboard two ways:
+unplugging the USB cable and plugging it back in, and switching the keyboard off with the cable still
+attached. The block was gone both times, and the Windows key typed its shortcut again.
+
+**Found.** The reset is the board's own behaviour rather than anything about the 2.4 GHz link, since
+Test 21 saw the same result there. The board keeps the five settings only while it is powered. The
+page asks for another write after a power-off, which is what the vendor app does whenever it applies
+them.
+
+Key remaps have survived a power cycle over USB for as long as this project has existed, and the
+light and the clock came back the same way over the receiver in Test 21. Only the settings record
+behaves like runtime state.
+
+Not tested: whether the Alt+F4 and Alt+Tab blocks also reset, and whether sleep and response time do.
+The page was applied with one block on each run, so the other fields were off and their survival was
+not visible.

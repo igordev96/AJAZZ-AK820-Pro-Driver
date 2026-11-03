@@ -215,8 +215,8 @@ export function DevicePanel({
 
           <p className="mt-2 text-[11px] leading-relaxed text-muted">
             The board does not keep the shortcut blocks through a power cycle. After a power-off the
-            Windows key typed its shortcut again (Test 21, over 2.4 GHz), so send the settings once
-            more after switching the keyboard off. The wired link is untested.
+            Windows key typed its shortcut again, over USB and over 2.4 GHz (Tests 21 and 22), so
+            send the settings once more after switching the keyboard off.
           </p>
         </aside>
       </div>
