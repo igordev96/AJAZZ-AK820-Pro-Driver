@@ -1,0 +1,97 @@
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it } from 'vitest';
+import type { WebHid, WebHidDevice } from '@/lib/hid';
+import { App } from './App';
+
+/**
+ * A receiver as Chrome presents it: no 0xFF13, one 0xFF60/0x0061 interface with
+ * 32-byte output reports, and no feature reports.
+ */
+const installReceiver = () => {
+  const frames: Uint8Array[] = [];
+  const listeners: Array<() => void> = [];
+
+  const device: WebHidDevice = {
+    opened: false,
+    productName: '2.4G Dongle',
+    vendorId: 0x0c45,
+    productId: 0xfdfd,
+    collections: [
+      {
+        usagePage: 0xff60,
+        usage: 0x0061,
+        outputReports: [{ reportId: 0, items: [{ reportSize: 8, reportCount: 32 }] }],
+        inputReports: [{ reportId: 0, items: [{ reportSize: 8, reportCount: 32 }] }],
+      },
+    ],
+    open: async () => {},
+    close: async () => {},
+    sendFeatureReport: async () => {},
+    receiveFeatureReport: async () => new DataView(new ArrayBuffer(64)),
+    sendReport: async (_reportId, data) => {
+      frames.push(new Uint8Array(data as Uint8Array));
+    },
+    addEventListener: (_type, listener) => {
+      listeners.push(listener);
+    },
+    removeEventListener: () => {},
+  };
+
+  const hid: WebHid = {
+    requestDevice: async () => [device],
+    getDevices: async () => [],
+  };
+  Object.defineProperty(navigator, 'hid', { value: hid, configurable: true });
+
+  return { frames };
+};
+
+const connect = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole('button', { name: /connect keyboard/i }));
+  await screen.findByText('2.4G Dongle');
+};
+
+describe('App over the 2.4 GHz receiver', () => {
+  it('says the link is unconfirmed and sends a key patch instead of a table', async () => {
+    const { frames } = installReceiver();
+    const user = userEvent.setup();
+    render(<App />);
+    await connect(user);
+
+    expect(
+      screen.getByText(/key changes go one at a time and the keyboard does not confirm them/i),
+    ).toBeInTheDocument();
+
+    const board = screen.getByRole('group', { name: /keyboard board/i });
+    await user.click(within(board).getByRole('button', { name: 'CapsLock' }));
+    await user.click(screen.getByLabelText('Sends'));
+    await user.type(screen.getByLabelText('Search a key or usage'), 'a (0x04)');
+    await user.click(await screen.findByRole('option', { name: 'A (0x04)' }));
+
+    await user.click(screen.getByRole('button', { name: /upload 1 change/i }));
+
+    await screen.findByText('No pending changes');
+    await user.click(screen.getByRole('button', { name: /^log$/i }));
+    await screen.findByText(/Sent 1 key change over 2\.4 GHz/);
+    expect(screen.getByRole('log')).toHaveTextContent(/The keyboard does not confirm them/);
+
+    // init, heartbeat, then one patch for the key.
+    const patch = frames[2];
+    expect(frames).toHaveLength(3);
+    expect(patch?.[0]).toBe(0x03);
+    expect(patch?.[1]).toBe(4);
+    expect(patch?.[2]).toBe(55);
+    expect(Array.from(patch?.slice(3, 7) ?? [])).toEqual([0x02, 0x00, 0x04, 0x00]);
+  });
+
+  it('keeps key changes pending when the receiver is not connected', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const board = screen.getByRole('group', { name: /keyboard board/i });
+    await user.click(within(board).getByRole('button', { name: 'CapsLock' }));
+
+    expect(screen.getByRole('button', { name: /upload changes/i })).toBeDisabled();
+  });
+});

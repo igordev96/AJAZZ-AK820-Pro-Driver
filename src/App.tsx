@@ -259,25 +259,25 @@ export function App() {
   }, []);
 
   const handleUpload = useCallback(() => {
-    if (!transfer || busyRef.current || pendingCount === 0) return;
+    if ((!transfer && !wireless) || busyRef.current || pendingCount === 0) return;
     const after = editorReducer(state, { type: 'uploaded' });
     void sendRows(getActiveRows(state), state.layer, after);
-  }, [pendingCount, sendRows, state, transfer]);
+  }, [pendingCount, sendRows, state, transfer, wireless]);
 
   const handleRestore = useCallback(() => {
-    if (!transfer || busyRef.current) return;
+    if ((!transfer && !wireless) || busyRef.current) return;
     setConfirming(true);
-  }, [transfer]);
+  }, [transfer, wireless]);
 
   const handleConfirmRestore = useCallback(() => {
-    if (!transfer || busyRef.current) return;
+    if ((!transfer && !wireless) || busyRef.current) return;
     setConfirming(false);
 
     const restored = editorReducer(state, { type: 'restore-layer' });
     dispatch({ type: 'replace', state: restored });
     const after = editorReducer(restored, { type: 'uploaded' });
     void sendRows(getActiveRows(restored), restored.layer, after);
-  }, [sendRows, state, transfer]);
+  }, [sendRows, state, transfer, wireless]);
 
   const handleCancelRestore = useCallback(() => setConfirming(false), []);
 
