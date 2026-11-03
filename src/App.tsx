@@ -48,6 +48,7 @@ import { FN_LOCKED, buildTable } from '@/lib/keymap';
 import { buildLightRecord, describeLight } from '@/lib/lighting';
 import { buildAnimationPayload } from '@/lib/screen';
 import { buildSettingsRecord, describeSettings, type DeviceSettings } from '@/lib/device';
+import { cn } from '@/lib/utils';
 
 // The three view panels and the drawer load on demand. A visitor who only remaps
 // keys never downloads the calendar, the lighting controls or the probes.
@@ -611,15 +612,28 @@ export function App() {
     void device.disconnect();
   }, [device]);
 
-  const banner = !device.supported
-    ? 'WebHID is not available in this browser. Use Chrome, Edge or Opera on desktop.'
-    : device.error
-      ? device.error
-      : device.status === 'connected' && device.link === 'wireless'
-        ? 'Connected over 2.4 GHz. Light, clock and settings are sent; key changes go one at a time and the keyboard does not confirm them. The screen is not available on this link.'
-        : device.status === 'connected' && !device.configFound
-          ? 'The configuration interface was not found. Use USB mode and close the vendor app.'
-          : null;
+  // A connected link is not a problem, so only the failures take the error
+  // styling. The 2.4 GHz note is neutral, and the screen caveat lives on the
+  // Screen tab rather than in this line.
+  const banner: { readonly tone: 'error' | 'info'; readonly text: string } | null =
+    !device.supported
+      ? {
+          tone: 'error',
+          text: 'WebHID is not available in this browser. Use Chrome, Edge or Opera on desktop.',
+        }
+      : device.error
+        ? { tone: 'error', text: device.error }
+        : device.status === 'connected' && device.link === 'wireless'
+          ? {
+              tone: 'info',
+              text: 'Connected over 2.4 GHz. Key changes go one at a time and the keyboard does not confirm them.',
+            }
+          : device.status === 'connected' && !device.configFound
+            ? {
+                tone: 'error',
+                text: 'The configuration interface was not found. Use USB mode and close the vendor app.',
+              }
+            : null;
 
   return (
     <div className="flex min-h-screen flex-col bg-ink text-ivory">
@@ -636,8 +650,15 @@ export function App() {
       />
 
       {banner ? (
-        <div className="border-b border-rust/40 bg-rust/10 px-4 py-2 text-sm text-rust">
-          {banner}
+        <div
+          className={cn(
+            'border-b px-4 py-2 text-sm',
+            banner.tone === 'error'
+              ? 'border-rust/40 bg-rust/10 text-rust'
+              : 'border-line bg-surface/60 text-muted',
+          )}
+        >
+          {banner.text}
         </div>
       ) : null}
 
@@ -710,6 +731,7 @@ export function App() {
                   animationSending={animationSending}
                   onSend={handleSendTime}
                   onSendAnimation={handleSendAnimation}
+                  wireless={device.link === 'wireless'}
                 />
               </div>
             </Suspense>

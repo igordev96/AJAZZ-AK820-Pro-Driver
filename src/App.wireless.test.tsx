@@ -110,6 +110,20 @@ describe('App over the 2.4 GHz receiver', () => {
     ]);
   });
 
+  it('marks the animation card USB only, because this link has no screen', async () => {
+    installReceiver();
+    const user = userEvent.setup();
+    render(<App />);
+    await connect(user);
+
+    await user.click(screen.getByRole('tab', { name: 'Screen' }));
+
+    expect(await screen.findByText('USB only')).toBeInTheDocument();
+    expect(screen.getByText(/has no screen channel/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Choose a file')).toBeDisabled();
+    expect(screen.getByRole('button', { name: /send animation/i })).toBeDisabled();
+  });
+
   it('keeps key changes pending when the receiver is not connected', async () => {
     const user = userEvent.setup();
     render(<App />);

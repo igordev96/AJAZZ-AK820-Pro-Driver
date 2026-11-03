@@ -63,7 +63,8 @@ changes as one patch per key, taken from `pendingKeyPatches` at `idx * 4` of the
 path would have sent, so the encoder stays the single source. Patches are paced 15 ms apart and
 silent, so `applied` moves when they are sent rather than when the keyboard replies. A whole-layer
 restore is 81 patches in a single run; Test 20 sent that burst and the map came back correct. The
-screen has no channel on this link, so the animation card stays disabled.
+screen has no channel on this link, so the animation card is disabled and tagged USB only, and the
+connection banner uses the neutral tone rather than the error one.
 
 ## 3. Transport
 

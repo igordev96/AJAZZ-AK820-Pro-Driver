@@ -33,6 +33,8 @@ type AnimationCardProps = {
   status: ScreenStatus;
   progress: { readonly sent: number; readonly total: number } | null;
   onSend: (frames: Uint8Array[], delays: number[]) => void;
+  /** True over the 2.4 GHz receiver, where the keyboard exposes no screen channel. */
+  wireless?: boolean;
 };
 
 const stillDelay = 100;
@@ -76,6 +78,7 @@ export function AnimationCard({
   status,
   progress,
   onSend,
+  wireless = false,
 }: AnimationCardProps) {
   const [picked, setPicked] = useState<Picked | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -132,7 +135,10 @@ export function AnimationCard({
 
   return (
     <aside className="rounded-panel border border-line bg-surface p-4">
-      <h2 className="text-sm font-semibold">Screen animation</h2>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-sm font-semibold">Screen animation</h2>
+        {wireless ? <span className="text-[10px] text-muted">USB only</span> : null}
+      </div>
       <p className="mt-1 text-[11px] leading-relaxed text-muted">
         A GIF, or one still picture. It replaces the animation on the keyboard, which this tool
         cannot read back.
@@ -142,7 +148,7 @@ export function AnimationCard({
         <label
           className={cn(
             'inline-flex h-8 cursor-pointer items-center rounded-control border border-line bg-keycap px-3 text-xs font-medium text-ivory transition-colors hover:border-muted/50',
-            (busy || sending) && 'pointer-events-none opacity-45',
+            (busy || sending || wireless) && 'pointer-events-none opacity-45',
           )}
         >
           Choose a file
@@ -150,7 +156,7 @@ export function AnimationCard({
             type="file"
             accept="image/gif,image/png,image/jpeg,image/webp"
             className="sr-only"
-            disabled={busy || sending}
+            disabled={busy || sending || wireless}
             onChange={(event) => {
               void pick(event.currentTarget.files?.[0]);
               event.currentTarget.value = '';
@@ -224,10 +230,16 @@ export function AnimationCard({
             Connect the keyboard to send an animation.
           </StatusNote>
         ) : null}
-        {connected && !screenReady ? (
+        {connected && !screenReady && !wireless ? (
           <p className="mt-2 text-[11px] leading-relaxed text-rust">
             This browser did not expose the screen interface. Reconnect and allow the keyboard
             again.
+          </p>
+        ) : null}
+        {wireless ? (
+          <p className="mt-2 text-[11px] leading-relaxed text-muted">
+            The 2.4 GHz receiver has no screen channel, so this card waits for the USB cable. The
+            clock above is sent on both links.
           </p>
         ) : null}
       </div>

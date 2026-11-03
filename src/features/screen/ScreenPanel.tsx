@@ -14,6 +14,8 @@ type ScreenPanelProps = {
   animationSending: boolean;
   onSend: (at: Date) => void;
   onSendAnimation: (frames: Uint8Array[], delays: number[]) => void;
+  /** True over the 2.4 GHz receiver, which has no screen channel. */
+  wireless?: boolean;
 };
 
 export function ScreenPanel({
@@ -26,6 +28,7 @@ export function ScreenPanel({
   animationSending,
   onSend,
   onSendAnimation,
+  wireless = false,
 }: ScreenPanelProps) {
   const mode = useSettings((settings) => settings.clock.mode);
   const [now, setNow] = useState(() => new Date());
@@ -78,6 +81,7 @@ export function ScreenPanel({
           status={animationStatus}
           progress={animationProgress}
           onSend={onSendAnimation}
+          wireless={wireless}
         />
       </div>
     </>
