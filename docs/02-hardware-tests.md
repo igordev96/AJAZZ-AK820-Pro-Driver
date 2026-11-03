@@ -534,3 +534,27 @@ Key uploads are not sent over this link yet. The pending bar says so and disable
 restore buttons rather than letting a click do nothing.
 
 Not tested: whether these writes survive a power cycle, and how the keyboard sleeps on this link.
+
+## Test 19 — key changes over the 2.4 GHz receiver (3 Nov 2026)
+
+Build: the working tree at `ec22077`, dev server on `http://localhost:5173`, Chrome on Windows, the
+keyboard in 2.4 GHz mode with the vendor app closed.
+
+The user changed CapsLock to `A` and uploaded. The page sent one patch:
+
+```
+03 04 37 02 00 04 00 … 44     command 0x03, index 0x37 = 55, record 02 00 04 00
+```
+
+CapsLock typed `a` afterwards. Fn + A to Mute went out as `0D 04 38 03 E2 00 00 … 2E` and worked.
+Both were then restored: `03 04 37 02 00 39 00 … 79` put CapsLock back, and `0D 04 38 00 00 00 00 …
+49` cleared the Fn override with the zero record the wired Fn table uses.
+
+The checksums in the log are the ones `buildWirelessFrame` computes, so the page's frames and the
+vendor's captured frames agree byte for byte.
+
+The keyboard confirmed nothing, and the log says so: *"Sent 1 key change over 2.4 GHz. The keyboard
+does not confirm them."*
+
+Not tested: restoring the whole top layer, which is 81 patches in one run, and whether these
+patches survive a power cycle.

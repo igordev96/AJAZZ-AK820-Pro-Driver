@@ -521,8 +521,9 @@ directly. A key patch carries the same 4-byte record as the wired table (`02 <mo
   needs both before it accepts a record: on 3 Nov 2026 the same light frame did nothing until the
   page sent init and a heartbeat first, and applied immediately once it did.
 - **Confirmed on the board** (Test 18): the light, the screen clock and the device settings all
-  arrived over this link. Key patches were confirmed separately, with the top-layer and Fn writes
-  captured and CapsLock → A, `1` → `t` and Fn + A → Mute seen on the board.
+  arrived over this link. Key patches were confirmed with the page itself (Test 19): CapsLock → A
+  and Fn + A → Mute went out as `03` and `0D` frames and worked, and both were cleared again with
+  the zero record.
 
 ### Not known
 
