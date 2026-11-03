@@ -191,4 +191,59 @@ describe('WirelessClient', () => {
   it('fails clearly when the browser cannot send output reports', async () => {
     await expect(new WirelessClient({}).init()).rejects.toThrow('output reports');
   });
+
+  it('patches one key with its index and four-byte record', async () => {
+    const recorder = sent();
+    const client = new WirelessClient(recorder.device);
+
+    const sentCount = await client.sendKeys('top', [
+      { index: 55, record: Uint8Array.from([0x02, 0x00, 0x04, 0x00]) },
+    ]);
+
+    expect(sentCount).toBe(1);
+    const patch = recorder.frames[2];
+    expect(patch?.[0]).toBe(WIRELESS_COMMANDS.top);
+    expect(patch?.[1]).toBe(4);
+    expect(patch?.[2]).toBe(55);
+    expect(Array.from(patch?.slice(3, 7) ?? [])).toEqual([0x02, 0x00, 0x04, 0x00]);
+  });
+
+  it('uses the Fn command for the Fn layer', async () => {
+    const recorder = sent();
+    const client = new WirelessClient(recorder.device);
+
+    await client.sendKeys('fn', [{ index: 56, record: Uint8Array.from([0x03, 0xe2, 0, 0]) }]);
+
+    expect(recorder.frames[2]?.[0]).toBe(WIRELESS_COMMANDS.fn);
+    expect(recorder.frames[2]?.[2]).toBe(56);
+  });
+
+  it('sends one frame per key and paces them', async () => {
+    const recorder = sent();
+    const slept: number[] = [];
+    const clock = {
+      now: () => 0,
+      sleep: async (ms: number) => {
+        slept.push(ms);
+      },
+    };
+    const client = new WirelessClient(recorder.device, () => {}, clock);
+
+    const sentCount = await client.sendKeys('top', [
+      { index: 20, record: Uint8Array.from([0x02, 0, 0x17, 0]) },
+      { index: 55, record: Uint8Array.from([0x02, 0, 0x04, 0]) },
+    ]);
+
+    expect(sentCount).toBe(2);
+    expect(recorder.frames).toHaveLength(4);
+    expect(slept).toHaveLength(1);
+  });
+
+  it('refuses a record that is not four bytes', async () => {
+    const client = new WirelessClient(sent().device);
+
+    await expect(client.sendKeys('top', [{ index: 1, record: new Uint8Array(3) }])).rejects.toThrow(
+      '4-byte',
+    );
+  });
 });

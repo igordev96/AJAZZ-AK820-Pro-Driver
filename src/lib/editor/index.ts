@@ -7,6 +7,8 @@ export {
   saveLayers,
 } from './persistence';
 export type { LayerRows, StorageLike, StoredLayers } from './persistence';
+export { pendingKeyPatches } from './patches';
+export type { PendingPatch } from './patches';
 export {
   applyMapEntries,
   createInitialState,

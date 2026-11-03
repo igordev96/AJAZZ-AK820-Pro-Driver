@@ -147,7 +147,7 @@ export function useDevice({ hid, log }: { hid?: WebHid; log?: LogFn } = {}) {
       log?.('device opened', 'ok');
       if (link === 'wireless') {
         log?.(
-          `2.4 GHz link: output reports of ${wirelessCollection ? wirelessOutputBytes(wirelessCollection) : 0} bytes. The screen and key uploads are not sent on this link yet.`,
+          `2.4 GHz link: output reports of ${wirelessCollection ? wirelessOutputBytes(wirelessCollection) : 0} bytes. Key changes are sent unconfirmed and the screen is not available on this link.`,
           'warn',
         );
       } else if (link === null) {

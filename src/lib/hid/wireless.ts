@@ -1,3 +1,5 @@
+import type { Clock } from '@/lib/clock';
+import { realClock } from '@/lib/clock';
 import type { LogFn } from './transfer';
 import { hex } from '@/lib/format';
 import type { CollectionNode, CollectionReport } from './collections';
@@ -133,8 +135,16 @@ export type WirelessDevice = {
   sendReport?(reportId: number, data: BufferSource): Promise<void>;
 };
 
+export type KeyPatch = {
+  readonly index: number;
+  readonly record: Uint8Array;
+};
+
+/** How long to wait between key patches. The vendor only ever sent one at a time. */
+const KEY_GAP_MS = 15;
+
 /**
- * Sends the records the receiver applies without a reply. A key patch is
+ * Sends the records the receiver applies without a reply. Key patches are
  * silent, so nothing here waits for confirmation.
  */
 export class WirelessClient {
@@ -143,6 +153,7 @@ export class WirelessClient {
   constructor(
     private readonly device: WirelessDevice,
     private readonly log: LogFn = () => {},
+    private readonly clock: Clock = realClock,
   ) {}
 
   /** Init and heartbeat, once, before the first record, as the vendor app does. */
@@ -171,17 +182,43 @@ export class WirelessClient {
     await this.send(WIRELESS_COMMANDS.settings, toWirelessRecord(record));
   }
 
+  /**
+   * One patch per key: the four-byte record the wired table would carry at that
+   * slot, with the key index in the frame header. There is no commit.
+   */
+  async sendKeys(layer: 'top' | 'fn', patches: readonly KeyPatch[]): Promise<number> {
+    if (patches.length === 0) return 0;
+
+    await this.ensureReady();
+
+    const command = layer === 'fn' ? WIRELESS_COMMANDS.fn : WIRELESS_COMMANDS.top;
+    let sent = 0;
+
+    for (const patch of patches) {
+      if (patch.record.length !== 4) {
+        throw new Error('a key patch carries a 4-byte record');
+      }
+      await this.write(command, patch.record, patch.index);
+      sent += 1;
+      if (sent < patches.length && KEY_GAP_MS > 0) {
+        await this.clock.sleep(KEY_GAP_MS);
+      }
+    }
+
+    return sent;
+  }
+
   private async send(command: number, payload?: Uint8Array): Promise<void> {
     await this.ensureReady();
     await this.write(command, payload);
   }
 
-  private async write(command: number, payload?: Uint8Array): Promise<void> {
+  private async write(command: number, payload?: Uint8Array, index = 0): Promise<void> {
     if (!this.device.sendReport) {
       throw new Error('this browser cannot send output reports');
     }
 
-    const frame = buildWirelessFrame(command, payload);
+    const frame = buildWirelessFrame(command, payload, index);
     this.log(`SEND  ${hex(frame)}`, 'info');
     await this.device.sendReport(0, frame);
   }

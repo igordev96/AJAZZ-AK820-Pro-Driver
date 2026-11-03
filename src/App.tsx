@@ -32,6 +32,7 @@ import {
   getPendingCount,
   getSelectedRow,
   loadLayers,
+  pendingKeyPatches,
   saveLayers,
   validateUsage,
   type EditorRow,
@@ -157,11 +158,8 @@ export function App() {
 
   const sendRows = useCallback(
     async (rowsToSend: readonly EditorRow[], layer: Layer, afterState: EditorState) => {
-      if (!transfer) {
-        log(
-          wireless ? 'Key uploads are not sent over 2.4 GHz yet.' : 'Connect the keyboard first.',
-          'warn',
-        );
+      if (!transfer && !wireless) {
+        log('Connect the keyboard first.', 'warn');
         return false;
       }
       if (busyRef.current) return false;
@@ -171,6 +169,27 @@ export function App() {
 
       try {
         const table = buildTable(rowsToSend, { layerFn: layer === 'fn' });
+
+        if (wireless) {
+          // One patch per key; the receiver applies them as they arrive and
+          // sends nothing back, so `applied` moves on a send, not a reply.
+          const patches = pendingKeyPatches(rowsToSend, table);
+          const sent = await wireless.sendKeys(layer, patches);
+          dispatch({ type: 'replace', state: afterState });
+
+          if (sent === 0) {
+            log('Nothing to send.', 'warn');
+            return false;
+          }
+
+          log(
+            `Sent ${sent} key change${sent === 1 ? '' : 's'} over 2.4 GHz. The keyboard does not confirm them.`,
+            'ok',
+          );
+          return true;
+        }
+
+        if (!transfer) return false;
         const result = await transfer.sendTable(table, layer);
 
         if (result.busy) {
@@ -597,7 +616,7 @@ export function App() {
     : device.error
       ? device.error
       : device.status === 'connected' && device.link === 'wireless'
-        ? 'Connected over 2.4 GHz. The light, clock and device settings go out; key uploads and the screen do not, yet.'
+        ? 'Connected over 2.4 GHz. Light, clock and settings are sent; key changes go one at a time and the keyboard does not confirm them. The screen is not available on this link.'
         : device.status === 'connected' && !device.configFound
           ? 'The configuration interface was not found. Use USB mode and close the vendor app.'
           : null;
@@ -656,7 +675,6 @@ export function App() {
                   connected={connected}
                   busy={busy}
                   confirming={confirming}
-                  wireless={device.link === 'wireless'}
                   onUpload={handleUpload}
                   onRestore={handleRestore}
                   onConfirmRestore={handleConfirmRestore}

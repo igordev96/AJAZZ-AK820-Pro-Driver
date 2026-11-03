@@ -8,8 +8,6 @@ type PendingBarProps = {
   connected: boolean;
   busy: boolean;
   confirming: boolean;
-  /** True over the 2.4 GHz receiver, where key uploads are not sent yet. */
-  wireless?: boolean;
   onUpload: () => void;
   onRestore: () => void;
   onConfirmRestore: () => void;
@@ -22,21 +20,18 @@ export function PendingBar({
   connected,
   busy,
   confirming,
-  wireless = false,
   onUpload,
   onRestore,
   onConfirmRestore,
   onCancelRestore,
 }: PendingBarProps) {
-  const canWrite = connected && !busy && !wireless;
+  const canWrite = connected && !busy;
   const restoreLabel = layer === 'fn' ? 'Clear all Fn overrides' : 'Restore factory map';
-  const status = wireless
-    ? 'Key uploads are not sent over 2.4 GHz yet.'
-    : !connected
-      ? 'Connect the keyboard to upload.'
-      : pendingCount
-        ? `${pendingCount} change${pendingCount === 1 ? '' : 's'} ready`
-        : 'No pending changes';
+  const status = !connected
+    ? 'Connect the keyboard to upload.'
+    : pendingCount
+      ? `${pendingCount} change${pendingCount === 1 ? '' : 's'} ready`
+      : 'No pending changes';
 
   return (
     <div className="space-y-2.5">

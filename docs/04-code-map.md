@@ -56,8 +56,13 @@ event handlers.
 wired board; a device with `0xFF60/0x0061` is the 2.4 GHz receiver, which has no feature reports
 at all. The state carries `link: 'usb' | 'wireless'` and the app branches on it: wired goes through
 `TransferService`, wireless through `WirelessClient` in `src/lib/hid/wireless.ts`, which sends
-33-byte output reports with a checksum. Over wireless the app sends the light, the clock and the
-device settings; key uploads and the screen are gated off for now. The banner says so.
+33-byte output reports with a checksum and the vendor's init and heartbeat first.
+
+Over wireless the same records go out: light, clock and device settings as one frame each, and key
+changes as one patch per key, taken from `pendingKeyPatches` at `idx * 4` of the table the wired
+path would have sent, so the encoder stays the single source. Patches are paced 15 ms apart and
+silent, so `applied` moves when they are sent rather than when the keyboard replies. The screen has
+no channel on this link, so the animation card stays disabled.
 
 ## 3. Transport
 

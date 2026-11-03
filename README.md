@@ -68,9 +68,10 @@ hardware, and it is the ANSI US model with 81 keys. Other layouts and variants m
 protocol, but they have not been tried.
 
 `FDFD` is the 2.4 GHz receiver. It has no feature reports, so the wired path cannot reach it; the
-page talks to it over `0xFF60/0x0061` with output reports instead, and sends the light, the clock
-and the device settings that way. Key uploads and the screen are not sent over this link yet. The
-protocol is in [docs/01-protocol.md](docs/01-protocol.md) §13.
+page talks to it over `0xFF60/0x0061` with output reports instead, and sends the light, the clock,
+the device settings and key changes that way. Key changes go one at a time and the keyboard does
+not confirm them. The screen is not available on this link. The protocol is in
+[docs/01-protocol.md](docs/01-protocol.md) §13.
 
 ## What it cannot do
 
