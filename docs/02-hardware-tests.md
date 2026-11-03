@@ -642,6 +642,9 @@ Not tested: whether the Alt+F4 and Alt+Tab blocks also reset, and whether sleep 
 The page was applied with one block on each run, so the other fields were off and their survival was
 not visible.
 
+*Added later: Test 24 answered both. The two blocks reset as well, and sleep and response take effect
+over the receiver.*
+
 ---
 
 ## Test 23 — the Alt+F4 and Alt+Tab blocks over 2.4 GHz (3 Nov 2026)
@@ -688,3 +691,28 @@ The user then ticked the box in the vendor app on the same link and tried the sh
 worked. The board does not apply either block over 2.4 GHz, for the vendor's app as much as for this
 page. The page now disables those two on that link and says why, instead of sending a flag the
 receiver ignores.
+
+---
+
+## Test 24 — sleep and response over 2.4 GHz, and the blocks after a power cycle (3 Nov 2026)
+
+Build: the working tree at `c9dcae3`, dev server on `http://localhost:5173`, Chrome on Windows, the
+keyboard in 2.4 GHz mode with the vendor app closed.
+
+Sleep and response time were the two values Test 17 left as "accepted, effect not observed". The
+user set both over the receiver and confirmed on the board that they take effect: the keyboard
+sleeps at the chosen interval, and the response level changes how it types.
+
+The same session answered the other open question from Test 22. After a power cycle over USB, the
+**Alt+F4 and Alt+Tab blocks were gone as well**, exactly like the Windows key block. So all five
+settings are runtime state, and none of them survives a power-off, on either link.
+
+**Found.** The settings record is not partly persistent. Whatever the board does with level, sleep
+and the three blocks, it forgets all of it at power-on, and the page's advice to send the settings
+again after switching the keyboard off covers the whole panel rather than just the blocks.
+
+The two blocks are still USB-only for the reason Test 23 gives: the receiver ignores them while it
+is running, which is a separate thing from losing them at power-on.
+
+Not tested: nothing in the record is left open. The remaining unknown is the wireless link's own
+sleep behaviour, which is the receiver's, not a setting.

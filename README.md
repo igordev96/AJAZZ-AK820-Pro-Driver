@@ -45,7 +45,8 @@ same link, one patch per key, with no confirmation from the keyboard, and Test 2
 top layer that way. Test 21 found what a power cycle keeps: the light, the clock and the key map came
 back, and the shortcut blocks did not. Test 22 repeated that over USB, so it is the board's behaviour
 rather than the link's. Test 23 found that the Alt+F4 and Alt+Tab blocks, which work over USB, do
-nothing over the receiver, and that the vendor app does no better there.
+nothing over the receiver, and that the vendor app does no better there. Test 24 saw the sleep time
+and the response level take effect over that link, and the remaining settings reset at power-on.
 [docs/02-hardware-tests.md](docs/02-hardware-tests.md) records the evidence.
 
 ## What it does
@@ -55,7 +56,8 @@ nothing over the receiver, and that the vendor app does no better there.
 - Assigns consumer keys: mute, volume, play/pause, track skip, browser back and forward,
   calculator and email.
 - Sets the clock on the keyboard's screen, from this computer or from a time you pick.
-- Plays a GIF on the screen, up to 140 frames, or one still picture.
+- Plays a GIF on the screen, up to 140 frames, or one still picture. The screen has no channel over
+  2.4 GHz, so that card waits for USB.
 - Sets the keyboard light: 20 effects, colour, brightness, speed and direction.
 - Restores the factory top map or clears every Fn override.
 - Runs diagnostics, a deep probe, a mailbox probe and raw test commands from the Advanced drawer.
@@ -186,9 +188,12 @@ field left out is turned off rather than left alone.
 There is no read-back for any of them either. The page shows what it is about to send, never what
 the board currently holds.
 
-The board does not keep the shortcut blocks through a power cycle. Tests 21 and 22 switched the
-keyboard off over the 2.4 GHz link and pulled the USB cable, and the Windows key typed its shortcut
-again each time, so send the settings once more after a power-on.
+The board keeps none of the five through a power cycle. Tests 21, 22 and 24 switched the keyboard off
+over the 2.4 GHz link, pulled the USB cable, and applied the blocks one at a time; every value came
+back at its default, so send the settings once more after a power-on.
+
+Sleep time and response level do take effect as soon as they are written, over the 2.4 GHz link as
+well as over USB (Test 24).
 
 Over 2.4 GHz the Alt+F4 and Alt+Tab blocks do nothing. The vendor app behaves the same way on that
 link, and its own capture puts the flags at the same bytes this page sends, so the board does not

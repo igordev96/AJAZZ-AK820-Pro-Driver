@@ -460,8 +460,10 @@ last sent.
 **Unknowns.** Bytes 5 and 7 never left zero in any capture, and announce byte 2 is `01` in every
 settings write while the clock announce has `00` there. They are kept at their captured values.
 
-Confirmed on the board in `docs/02-hardware-tests.md` Test 17: the three shortcut blocks work, and
-the sleep and response writes are accepted, though those two effects were not observed.
+Confirmed on the board in `docs/02-hardware-tests.md` Test 17: the three shortcut blocks work. Test 24
+then saw the sleep time and the response level take effect over the 2.4 GHz link as soon as they were
+written. The blocks reset when the board loses power (Tests 21 and 22), so those are runtime state;
+sleep and response behave as settings the board uses while it runs.
 
 
 
@@ -520,11 +522,12 @@ directly. A key patch carries the same 4-byte record as the wired table (`02 <mo
 - **Init and heartbeat.** `02 00 00` at connect and `20 01 00` every fifteen seconds. The receiver
   needs both before it accepts a record: on 3 Nov 2026 the same light frame did nothing until the
   page sent init and a heartbeat first, and applied immediately once it did.
-- **Two shortcut blocks do not exist on this link.** The Windows key block works from the page.
-  Alt+Tab (byte 2) and Alt+F4 (byte 3) go out at the offsets the wired record uses, the vendor's own
-  dongle capture puts them there too (`dongle-altf4.log`, 3 Nov 2026), and the board ignores both
-  (Test 23). The vendor app's box does nothing on this link either, so the receiver or its firmware
-  does not implement them. The page disables those two over the receiver and points at USB.
+- **Two shortcut blocks do not exist on this link.** The Windows key block works from the page, and
+  so do the sleep time and the response level (Test 24). Alt+Tab (byte 2) and Alt+F4 (byte 3) go out
+  at the offsets the wired record uses, the vendor's own dongle capture puts them there too
+  (`dongle-altf4.log`, 3 Nov 2026), and the board ignores both (Test 23). The vendor app's box does
+  nothing on this link either, so the receiver or its firmware does not implement them. The page
+  disables those two over the receiver and points at USB.
 - **Confirmed on the board** (Test 18): the light, the screen clock and the device settings all
   arrived over this link. Key patches were confirmed with the page itself (Test 19): CapsLock → A
   and Fn + A → Mute went out as `03` and `0D` frames and worked, and both were cleared again with
