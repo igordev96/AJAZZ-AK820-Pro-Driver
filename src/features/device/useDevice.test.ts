@@ -97,6 +97,8 @@ describe('useDevice', () => {
     expect(result.current.configFound).toBe(false);
     expect(result.current.screenFound).toBe(false);
     expect(log).toHaveBeenCalledWith(expect.stringContaining('2.4 GHz link'), 'warn');
+    // The receiver never exposes a screen channel, so that miss is not a warning.
+    expect(log).not.toHaveBeenCalledWith(expect.stringContaining('screen interface'), 'warn');
   });
 
   it('prefers the receiver interface over a composite one without config', async () => {
