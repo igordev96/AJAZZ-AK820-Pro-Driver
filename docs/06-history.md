@@ -118,6 +118,9 @@ WebHID won because it is the only option with zero install and a stable API for 
   back after a power cycle; the shortcut blocks did not, over USB or over 2.4 GHz (Tests 21 and 22).
   A write that is accepted can still be runtime state, so ask what happens after a power-on before
   promising anything lasts.
+* **Matching the wired frame does not prove the wireless one.** The Alt+F4 and Alt+Tab blocks work
+  over USB with the bytes the captures show, and do nothing over the receiver with the same bytes
+  (Test 23). Treat a second transport as its own decode until its own capture says otherwise.
 * **A colour that encodes state cannot also decorate.** The first v2 build gave the Fn cap a brass
   edge for looks, while the legend says brass means a key differs from the factory table. The first
   question from the user was whether Fn had been remapped. Keep one meaning per visual signal.

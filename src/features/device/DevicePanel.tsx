@@ -184,6 +184,13 @@ export function DevicePanel({
             </div>
           </fieldset>
 
+          {wireless ? (
+            <p className="mt-3 border-t border-line/60 pt-3 text-[11px] leading-relaxed text-muted">
+              Alt + F4 and Alt + Tab did not take effect over 2.4 GHz when they were tested (Test
+              23). The Windows key did. Send those two over USB.
+            </p>
+          ) : null}
+
           <div className="mt-4">
             <Button disabled={!connected || busy} onClick={() => onApply(settings)}>
               {busy ? 'Sending…' : 'Apply settings'}

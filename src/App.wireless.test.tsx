@@ -85,6 +85,29 @@ describe('App over the 2.4 GHz receiver', () => {
     expect(Array.from(patch?.slice(3, 7) ?? [])).toEqual([0x02, 0x00, 0x04, 0x00]);
   });
 
+  it('carries the three shortcut flags in the settings frame', async () => {
+    const { frames } = installReceiver();
+    const user = userEvent.setup();
+    render(<App />);
+    await connect(user);
+
+    await user.click(screen.getByRole('tab', { name: 'Device' }));
+    for (const label of ['Alt + Tab', 'Alt + F4', 'Windows key']) {
+      await user.click(await screen.findByRole('checkbox', { name: label }));
+    }
+    await user.click(screen.getByRole('button', { name: 'Apply settings' }));
+
+    await screen.findByText(/Alt\+F4 and the Windows key blocked/);
+
+    // init, heartbeat, then the settings record: 00 01 <altTab> <altF4> <win> 00 <sleep> 00 <level>.
+    const frame = frames[2];
+    expect(frame?.[0]).toBe(0x07);
+    expect(frame?.[1]).toBe(16);
+    expect(Array.from(frame?.slice(3, 12) ?? [])).toEqual([
+      0x00, 0x01, 0x01, 0x01, 0x01, 0x00, 0x02, 0x00, 0x01,
+    ]);
+  });
+
   it('keeps key changes pending when the receiver is not connected', async () => {
     const user = userEvent.setup();
     render(<App />);

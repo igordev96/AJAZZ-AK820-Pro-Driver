@@ -641,3 +641,31 @@ behaves like runtime state.
 Not tested: whether the Alt+F4 and Alt+Tab blocks also reset, and whether sleep and response time do.
 The page was applied with one block on each run, so the other fields were off and their survival was
 not visible.
+
+---
+
+## Test 23 — the Alt+F4 and Alt+Tab blocks over 2.4 GHz (3 Nov 2026)
+
+Build: the working tree at `391fa32`, dev server on `http://localhost:5173`, Chrome on Windows, the
+keyboard in 2.4 GHz mode with the vendor app closed.
+
+The user ticked **Alt + F4** and **Alt + Tab** on the Device tab and applied. The page sends the
+settings record as `07 10` with record bytes 0 to 13 and `AA 55`; a test on a fake receiver now
+checks those bytes, and with these two flags the frame starts `00 01 01 01 01 00 02 00 01`, so
+record bytes 2 and 3 do leave the page.
+
+Nothing changed on the board. Alt+F4 still closed the window and Alt+Tab still switched. The Windows
+key block, sent the same way on the same link, works (Test 18), and all three blocks work over USB
+(Test 17).
+
+**Found.** The wired captures put Alt+Tab at byte 2, Alt+F4 at byte 3 and the Windows key at byte 4,
+and the page writes those positions. The vendor's two dongle settings captures only toggle byte 4,
+so bytes 2 and 3 were never set over the receiver in any capture we hold. Either the receiver drops
+them or it expects them elsewhere in its record.
+
+The page now says this under the checkboxes when it is connected over 2.4 GHz, and points those two
+blocks at USB.
+
+Next step: capture the vendor app over the dongle with Alt+F4 ticked. If its frame matches ours, the
+limit is the receiver or its firmware, and the note stays. If the bytes differ, the wireless record
+needs its own offsets.
