@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { StatusNote } from '@/components/status-note';
+import { UsbOnlyBadge } from '@/components/usb-only-badge';
 import {
   SCREEN_BLOCKS_PER_FRAME,
   SCREEN_HEIGHT,
@@ -137,7 +138,7 @@ export function AnimationCard({
     <aside className="rounded-panel border border-line bg-surface p-4">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-sm font-semibold">Screen animation</h2>
-        {wireless ? <span className="text-[10px] text-muted">USB only</span> : null}
+        {wireless ? <UsbOnlyBadge /> : null}
       </div>
       <p className="mt-1 text-[11px] leading-relaxed text-muted">
         A GIF, or one still picture. It replaces the animation on the keyboard, which this tool
@@ -237,7 +238,7 @@ export function AnimationCard({
           </p>
         ) : null}
         {wireless ? (
-          <p className="mt-2 text-[11px] leading-relaxed text-muted">
+          <p className="mt-2 border-l-2 border-brass/50 pl-3 text-[11px] leading-relaxed text-muted">
             The 2.4 GHz receiver has no screen channel, so this card waits for the USB cable. The
             clock above is sent on both links.
           </p>

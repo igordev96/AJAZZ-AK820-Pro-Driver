@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { StatusNote } from '@/components/status-note';
+import { UsbOnlyBadge } from '@/components/usb-only-badge';
 import {
   DEFAULT_DEVICE_SETTINGS,
   RESPONSE_LEVELS,
@@ -169,7 +170,7 @@ export function DevicePanel({
               <span id="device-altf4-label" className="text-xs text-ivory">
                 Alt + F4
               </span>
-              {wireless ? <span className="ml-auto text-[10px] text-muted">USB only</span> : null}
+              {wireless ? <UsbOnlyBadge className="ml-auto" /> : null}
             </div>
 
             <div className={cn(flagRow, 'flex items-center gap-3', wireless && 'opacity-70')}>
@@ -184,14 +185,14 @@ export function DevicePanel({
               <span id="device-alttab-label" className="text-xs text-ivory">
                 Alt + Tab
               </span>
-              {wireless ? <span className="ml-auto text-[10px] text-muted">USB only</span> : null}
+              {wireless ? <UsbOnlyBadge className="ml-auto" /> : null}
             </div>
           </fieldset>
 
           {wireless ? (
             <p
               id="device-wireless-blocks"
-              className="mt-3 border-t border-line/60 pt-3 text-[11px] leading-relaxed text-muted"
+              className="mt-3 border-l-2 border-brass/50 pl-3 text-[11px] leading-relaxed text-muted"
             >
               The board does not apply these two over 2.4 GHz, and the vendor app does no better on
               this link (Test 23). The Windows key block works here.

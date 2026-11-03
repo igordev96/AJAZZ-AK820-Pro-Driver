@@ -655,7 +655,7 @@ export function App() {
             'border-b px-4 py-2 text-sm',
             banner.tone === 'error'
               ? 'border-rust/40 bg-rust/10 text-rust'
-              : 'border-line bg-surface/60 text-muted',
+              : 'border-brass/40 bg-brass/10 text-brass',
           )}
         >
           {banner.text}
