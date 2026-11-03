@@ -13,14 +13,14 @@ src/App.tsx              page composition, upload and restore, drawer state
 src/styles/globals.css   colour, type and radius tokens, bench mat, base styles
 src/components/ui/       Button, Input, Popover, Calendar, Tabs, Checkbox, Slider, Select,
                          Command, Combobox, ToggleGroup, Sheet
-src/components/          StatusNote, TabRow
+src/components/          StatusNote, TabRow, UsbOnlyBadge
 src/lib/keymap/          constants, factory keys, record encoding, names, parsing, table
 src/lib/hid/             protocol, client, collections, wireless, WebHID types, transfer, time,
                          probes, raw
 src/lib/screen/          RGB565, frame layout, animation payload
 src/lib/lighting/        the 64-byte record, preview motion, accepted-light wording
 src/lib/device/          the 64-byte settings record, response levels, sleep options
-src/lib/editor/          row state, reducer, validation, persistence
+src/lib/editor/          row state, reducer, validation, persistence, per-key patches
 src/lib/settings/        remembered view, clock mode and light settings
 src/lib/clock.ts         Clock type and the real timer
 src/lib/format.ts        hex formatting
@@ -48,9 +48,9 @@ top-layer edits and the log stay out on purpose: a saved table would look applie
 log would describe traffic from another session.
 
 React components render and dispatch. They never call `navigator.hid`. `useDevice` owns the
-chooser, open and close, and the disconnect listener. Uploads go through `TransferService`. The
-advanced drawer calls the probe services. Both receive a transport, and writes happen only in
-event handlers.
+chooser, open and close, and the disconnect listener. Uploads on the wired link go through
+`TransferService`; the receiver's records go through `WirelessClient`. The advanced drawer calls the
+probe services. All of them receive a transport, and writes happen only in event handlers.
 
 `useDevice` records how the keyboard was reached. A device with the `0xFF13` collection is the
 wired board; a device with `0xFF60/0x0061` is the 2.4 GHz receiver, which has no feature reports
@@ -160,7 +160,8 @@ uploaded            copy usage/media into applied/appliedMedia
 replace             swap in a whole state (restore confirmation)
 ```
 
-`applied` moves only on `uploaded`, which `App` dispatches after a `commit 0x01`.
+`applied` moves on `uploaded`, which `App` dispatches after a `commit 0x01`, and on `replace` when a
+wireless upload goes out, because the receiver confirms nothing and there is no commit to wait for.
 `src/lib/editor/persistence.ts` stores both layers in one object under `ak820.layers`:
 
 ```json
@@ -193,7 +194,8 @@ utilities, so a palette change reaches it too.
 
 Visual states are separate: brass edge and brass legend mean "differs from factory", a brass dot
 means "not uploaded", an ivory edge means "selected", and a dashed cap means "firmware-owned on the
-Fn layer". Brass is never used as decoration, because the legend gives it meaning.
+Fn layer". Brass is never used as decoration: on the board the legend gives it meaning, and on a
+control it marks what the current link cannot do.
 
 The inspector mirrors the board and is the only place that edits a usage. The `Sends` picker is a
 searchable combobox grouped by the usage table, so a keyboard key, a media key or the Fn default
@@ -210,7 +212,8 @@ is never started by connecting or by switching views; it needs the **Send time**
 (`src/lib/screen/decode.ts`), composites each frame to 128 × 128, converts it to RGB565 and keeps
 the delays. The file never leaves the page. Uploads show block progress; there is no cancel,
 because the firmware cannot abort a stream it has started. The card is disabled when WebHID did not
-return the `0xFF68` interface.
+return the `0xFF68` interface, and on the 2.4 GHz link it is disabled, badged `USB only` and explains
+that the receiver has no screen channel.
 
 `LightingPanel` shows the 20 effects. Each mode's controls come from the vendor database:
 colour and Colourful, brightness, speed, and the direction pair for its axis. The controls are
@@ -227,8 +230,9 @@ reports one, and a mode that cycles through colours never promises the picker's 
 The **Device** view is two columns. The left one is the vendor's response-time table, all three
 links, with the selected level in ivory so the numbers can be compared before choosing. The right
 one holds the two selects and the three checkboxes, and one Apply writes them together, because the
-record is a snapshot. `src/lib/device` holds the record, the option lists and the wording, and
-`docs/01-protocol.md` §12 holds the captured layout.
+record is a snapshot. On the 2.4 GHz link the Alt+F4 and Alt+Tab rows are disabled and badged, since
+the receiver ignores those two flags. `src/lib/device` holds the record, the option lists and the
+wording, and `docs/01-protocol.md` §12 holds the captured layout.
 
 `AdvancedDrawer` is a `Sheet`: a Radix dialog that slides in from the right, traps focus, locks the
 page scroll and returns focus to the Advanced button on close. Escape and a click on the overlay
@@ -265,7 +269,9 @@ app busy flag through `onBusyChange`.
 | `src/lib/hid/raw.test.ts` | hex parsing, chunking, reply listening |
 | `src/lib/editor/state.test.ts` | reducer, pending count, validation, map apply |
 | `src/lib/editor/persistence.test.ts` | one stored object, draft/applied, legacy migration |
-| `src/features/device/useDevice.test.ts` | chooser, open, disconnect, no config interface |
+| `src/lib/editor/patches.test.ts` | per-key records sliced from the table, media, Fn, order |
+| `src/lib/hid/wireless.test.ts` | frame, checksum, record, interface choice, patches, handshake retry |
+| `src/features/device/useDevice.test.ts` | chooser, open, disconnect, receiver, no config interface |
 | `src/features/editor/*.test.tsx` | board, inspector, staging bar |
 | `src/features/advanced/AdvancedDrawer.test.tsx` | each tab, close paths, busy state |
 | `src/features/screen/ClockCard.test.tsx` | clock modes, validation, status, busy state |
@@ -276,6 +282,7 @@ app busy flag through `onBusyChange`.
 | `src/App.test.tsx` | offline editing, layers, log |
 | `src/App.upload.test.tsx` | fake HID end to end: connect, edit, upload, commit |
 | `src/App.screen.test.tsx` | view switch and a fake-HID clock send |
+| `src/App.wireless.test.tsx` | fake receiver: key patch, settings frame, USB-only screen card |
 
 The suite needs no keyboard. `src/test/hidFakes.ts` provides `FakeClock` and `FakeTransport`, and
 the app tests install a fake `navigator.hid`.

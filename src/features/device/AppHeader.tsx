@@ -31,7 +31,7 @@ export function AppHeader({
   const connected = device.status === 'connected';
   const label =
     device.status === 'connected'
-      ? device.configFound
+      ? device.link
         ? (device.name ?? 'AK820')
         : 'Interface unavailable'
       : device.status === 'connecting'
@@ -42,8 +42,8 @@ export function AppHeader({
 
   const dot = cn(
     'size-1.5 rounded-full',
-    connected && device.configFound && 'bg-sage',
-    connected && !device.configFound && 'bg-rust',
+    connected && device.link && 'bg-sage',
+    connected && !device.link && 'bg-rust',
     device.status === 'connecting' && 'animate-pulse bg-brass motion-reduce:animate-none',
     device.status === 'error' && 'bg-rust',
     device.status === 'idle' && 'bg-muted',

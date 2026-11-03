@@ -94,7 +94,7 @@ describe('useDevice', () => {
     expect(result.current.status).toBe('connected');
     expect(result.current.device).toBe(device);
     expect(result.current.link).toBe('wireless');
-    expect(result.current.configFound).toBe(true);
+    expect(result.current.configFound).toBe(false);
     expect(result.current.screenFound).toBe(false);
     expect(log).toHaveBeenCalledWith(expect.stringContaining('2.4 GHz link'), 'warn');
   });

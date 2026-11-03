@@ -138,11 +138,11 @@ export function App() {
   } | null>(null);
 
   const transfer = useMemo(() => {
-    if (!device.device || !device.configFound || device.link !== 'usb') return null;
+    if (!device.device || device.link !== 'usb') return null;
     const config = new HidClient(device.device);
     const screen = device.screenDevice ? new HidClient(device.screenDevice) : null;
     return new TransferService(config, realClock, log, screen ?? undefined);
-  }, [device.device, device.screenDevice, device.configFound, device.link, log]);
+  }, [device.device, device.screenDevice, device.link, log]);
 
   // The receiver takes records over output reports and applies patches silently.
   const wireless = useMemo(
@@ -154,7 +154,7 @@ export function App() {
   const rows = getActiveRows(state);
   const selectedRow = getSelectedRow(state);
   const pendingCount = getPendingCount(state);
-  const connected = device.status === 'connected' && device.configFound;
+  const connected = device.status === 'connected' && device.link !== null;
   const locked = selectedRow ? state.layer === 'fn' && FN_LOCKED.has(selectedRow.idx) : false;
 
   const sendRows = useCallback(
@@ -176,13 +176,13 @@ export function App() {
           // sends nothing back, so `applied` moves on a send, not a reply.
           const patches = pendingKeyPatches(rowsToSend, table);
           const sent = await wireless.sendKeys(layer, patches);
-          dispatch({ type: 'replace', state: afterState });
 
           if (sent === 0) {
             log('Nothing to send.', 'warn');
             return false;
           }
 
+          dispatch({ type: 'replace', state: afterState });
           log(
             `Sent ${sent} key change${sent === 1 ? '' : 's'} over 2.4 GHz. The keyboard does not confirm them.`,
             'ok',
@@ -190,6 +190,7 @@ export function App() {
           return true;
         }
 
+        // The guard above allows one link or the other; this narrows the type.
         if (!transfer) return false;
         const result = await transfer.sendTable(table, layer);
 
@@ -628,7 +629,7 @@ export function App() {
               tone: 'info',
               text: 'Connected over 2.4 GHz. Key changes go one at a time and the keyboard does not confirm them.',
             }
-          : device.status === 'connected' && !device.configFound
+          : device.status === 'connected' && device.link === null
             ? {
                 tone: 'error',
                 text: 'The configuration interface was not found. Use USB mode and close the vendor app.',

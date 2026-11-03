@@ -135,7 +135,7 @@ export function useDevice({ hid, log }: { hid?: WebHid; log?: LogFn } = {}) {
         vendorId: device.vendorId,
         productId: device.productId,
         link,
-        configFound: link !== null,
+        configFound,
         screenFound,
         error: null,
       });
@@ -147,7 +147,7 @@ export function useDevice({ hid, log }: { hid?: WebHid; log?: LogFn } = {}) {
       log?.('device opened', 'ok');
       if (link === 'wireless') {
         log?.(
-          `2.4 GHz link: output reports of ${wirelessCollection ? wirelessOutputBytes(wirelessCollection) : 0} bytes. Key changes are sent unconfirmed and the screen is not available on this link.`,
+          `2.4 GHz link: output reports of ${wirelessCollection ? wirelessOutputBytes(wirelessCollection) : 0} bytes. Key changes go out unconfirmed and this link has no screen channel.`,
           'warn',
         );
       } else if (link === null) {
@@ -156,7 +156,9 @@ export function useDevice({ hid, log }: { hid?: WebHid; log?: LogFn } = {}) {
           'err',
         );
       }
-      if (!screenFound) {
+      // Over the receiver the missing screen is the rule, not a fault, so it
+      // only deserves a warning on a link that should have offered one.
+      if (!screenFound && link !== 'wireless') {
         log?.('screen interface 0xFF68/0x0061 not found. The image card stays disabled.', 'warn');
       }
     } catch (error) {
