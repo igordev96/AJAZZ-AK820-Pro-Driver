@@ -520,11 +520,11 @@ directly. A key patch carries the same 4-byte record as the wired table (`02 <mo
 - **Init and heartbeat.** `02 00 00` at connect and `20 01 00` every fifteen seconds. The receiver
   needs both before it accepts a record: on 3 Nov 2026 the same light frame did nothing until the
   page sent init and a heartbeat first, and applied immediately once it did.
-- **Two shortcut blocks are missing on this link.** The vendor's two dongle settings captures only
-  ever set byte 4, the Windows key, and that block works from the page. The page sends bytes 2
-  (Alt+Tab) and 3 (Alt+F4) in the same record the wired path uses, and the board ignored both
-  (Test 23). Either the receiver drops them or it wants them elsewhere, which a capture with the
-  vendor app would settle.
+- **Two shortcut blocks do not exist on this link.** The Windows key block works from the page.
+  Alt+Tab (byte 2) and Alt+F4 (byte 3) go out at the offsets the wired record uses, the vendor's own
+  dongle capture puts them there too (`dongle-altf4.log`, 3 Nov 2026), and the board ignores both
+  (Test 23). The vendor app's box does nothing on this link either, so the receiver or its firmware
+  does not implement them. The page disables those two over the receiver and points at USB.
 - **Confirmed on the board** (Test 18): the light, the screen clock and the device settings all
   arrived over this link. Key patches were confirmed with the page itself (Test 19): CapsLock → A
   and Fn + A → Mute went out as `03` and `0D` frames and worked, and both were cleared again with

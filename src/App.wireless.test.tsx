@@ -85,26 +85,28 @@ describe('App over the 2.4 GHz receiver', () => {
     expect(Array.from(patch?.slice(3, 7) ?? [])).toEqual([0x02, 0x00, 0x04, 0x00]);
   });
 
-  it('carries the three shortcut flags in the settings frame', async () => {
+  it('offers the Windows block only, and says why the other two wait for USB', async () => {
     const { frames } = installReceiver();
     const user = userEvent.setup();
     render(<App />);
     await connect(user);
 
     await user.click(screen.getByRole('tab', { name: 'Device' }));
-    for (const label of ['Alt + Tab', 'Alt + F4', 'Windows key']) {
-      await user.click(await screen.findByRole('checkbox', { name: label }));
-    }
+
+    expect(await screen.findByRole('checkbox', { name: 'Alt + F4' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Alt + Tab' })).toBeDisabled();
+    expect(screen.getByText(/does not apply these two over 2\.4 GHz/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Windows key' }));
     await user.click(screen.getByRole('button', { name: 'Apply settings' }));
+    await screen.findByText(/the Windows key blocked/);
 
-    await screen.findByText(/Alt\+F4 and the Windows key blocked/);
-
-    // init, heartbeat, then the settings record: 00 01 <altTab> <altF4> <win> 00 <sleep> 00 <level>.
+    // init, heartbeat, then 00 01 <altTab> <altF4> <win> 00 <sleep> 00 <level>.
     const frame = frames[2];
     expect(frame?.[0]).toBe(0x07);
     expect(frame?.[1]).toBe(16);
     expect(Array.from(frame?.slice(3, 12) ?? [])).toEqual([
-      0x00, 0x01, 0x01, 0x01, 0x01, 0x00, 0x02, 0x00, 0x01,
+      0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x01,
     ]);
   });
 

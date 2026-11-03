@@ -669,3 +669,22 @@ blocks at USB.
 Next step: capture the vendor app over the dongle with Alt+F4 ticked. If its frame matches ours, the
 limit is the receiver or its firmware, and the note stays. If the bytes differ, the wireless record
 needs its own offsets.
+
+**Answered the same day.** A capture of the vendor app over the dongle (`dongle-altf4.log`, 3 Nov
+2026) holds four settings writes, one per click:
+
+```
+07 10 00 | 00 01 00 01 00 00 02 00 01 ...   record[3] = 1, Alt+F4 ticked
+07 10 00 | 00 01 00 00 00 00 02 00 01 ...   unticked
+07 10 00 | 00 01 01 00 00 00 02 00 01 ...   record[2] = 1, Alt+Tab ticked
+07 10 00 | 00 01 00 00 00 00 02 00 01 ...   unticked
+```
+
+Those are the same offsets as the wired record, and the page's frame for the same settings is
+identical, so the encoding was never the problem. Nothing follows the write: no second command and
+no commit.
+
+The user then ticked the box in the vendor app on the same link and tried the shortcut, and it still
+worked. The board does not apply either block over 2.4 GHz, for the vendor's app as much as for this
+page. The page now disables those two on that link and says why, instead of sending a flag the
+receiver ignores.

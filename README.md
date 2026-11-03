@@ -45,7 +45,7 @@ same link, one patch per key, with no confirmation from the keyboard, and Test 2
 top layer that way. Test 21 found what a power cycle keeps: the light, the clock and the key map came
 back, and the shortcut blocks did not. Test 22 repeated that over USB, so it is the board's behaviour
 rather than the link's. Test 23 found that the Alt+F4 and Alt+Tab blocks, which work over USB, do
-nothing over the receiver.
+nothing over the receiver, and that the vendor app does no better there.
 [docs/02-hardware-tests.md](docs/02-hardware-tests.md) records the evidence.
 
 ## What it does
@@ -190,9 +190,9 @@ The board does not keep the shortcut blocks through a power cycle. Tests 21 and 
 keyboard off over the 2.4 GHz link and pulled the USB cable, and the Windows key typed its shortcut
 again each time, so send the settings once more after a power-on.
 
-Over 2.4 GHz the Alt+F4 and Alt+Tab blocks were sent and did not take effect (Test 23), while the
-Windows key block did. The page says so on that link; send those two over USB until the dongle's own
-captures explain it.
+Over 2.4 GHz the Alt+F4 and Alt+Tab blocks do nothing. The vendor app behaves the same way on that
+link, and its own capture puts the flags at the same bytes this page sends, so the board does not
+implement them there. The page disables those two over the receiver and sends them over USB.
 
 **Advanced** opens the diagnostics, the deep probe, the mailbox probe and a raw command tab.
 These send test commands and never write a keymap. Uploads are locked while one of them runs.

@@ -157,37 +157,44 @@ export function DevicePanel({
               </span>
             </div>
 
-            <div className={cn(flagRow, 'flex items-center gap-3')}>
+            <div className={cn(flagRow, 'flex items-center gap-3', wireless && 'opacity-70')}>
               <Checkbox
                 id="device-altf4"
                 checked={settings.disableAltF4}
-                disabled={busy}
+                disabled={busy || wireless}
                 aria-labelledby="device-altf4-label"
+                aria-describedby={wireless ? 'device-wireless-blocks' : undefined}
                 onCheckedChange={(checked) => change({ disableAltF4: checked === true })}
               />
               <span id="device-altf4-label" className="text-xs text-ivory">
                 Alt + F4
               </span>
+              {wireless ? <span className="ml-auto text-[10px] text-muted">USB only</span> : null}
             </div>
 
-            <div className={cn(flagRow, 'flex items-center gap-3')}>
+            <div className={cn(flagRow, 'flex items-center gap-3', wireless && 'opacity-70')}>
               <Checkbox
                 id="device-alttab"
                 checked={settings.disableAltTab}
-                disabled={busy}
+                disabled={busy || wireless}
                 aria-labelledby="device-alttab-label"
+                aria-describedby={wireless ? 'device-wireless-blocks' : undefined}
                 onCheckedChange={(checked) => change({ disableAltTab: checked === true })}
               />
               <span id="device-alttab-label" className="text-xs text-ivory">
                 Alt + Tab
               </span>
+              {wireless ? <span className="ml-auto text-[10px] text-muted">USB only</span> : null}
             </div>
           </fieldset>
 
           {wireless ? (
-            <p className="mt-3 border-t border-line/60 pt-3 text-[11px] leading-relaxed text-muted">
-              Alt + F4 and Alt + Tab did not take effect over 2.4 GHz when they were tested (Test
-              23). The Windows key did. Send those two over USB.
+            <p
+              id="device-wireless-blocks"
+              className="mt-3 border-t border-line/60 pt-3 text-[11px] leading-relaxed text-muted"
+            >
+              The board does not apply these two over 2.4 GHz, and the vendor app does no better on
+              this link (Test 23). The Windows key block works here.
             </p>
           ) : null}
 
