@@ -108,6 +108,13 @@ describe('findWirelessCollection', () => {
     expect(findWirelessInterface([keyboard, other, receiver])).toBe(receiver);
     expect(findWirelessInterface([keyboard, other])).toBeNull();
   });
+
+  it('prefers the 32-byte interface when two receivers are offered', () => {
+    const large = { collections: [collection(0xff60, 0x61, 64)] };
+    const small = { collections: [collection(0xff60, 0x61, 32)] };
+
+    expect(findWirelessInterface([large, small])).toBe(small);
+  });
 });
 
 describe('WirelessClient', () => {

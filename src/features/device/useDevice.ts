@@ -4,7 +4,11 @@ import {
   findScreenCollection,
   flattenCollections,
 } from '@/lib/hid/collections';
-import { findWirelessCollection, findWirelessInterface } from '@/lib/hid/wireless';
+import {
+  findWirelessCollection,
+  findWirelessInterface,
+  wirelessOutputBytes,
+} from '@/lib/hid/wireless';
 import type { LogFn } from '@/lib/hid/transfer';
 import {
   buildWebHidFilters,
@@ -109,11 +113,10 @@ export function useDevice({ hid, log }: { hid?: WebHid; log?: LogFn } = {}) {
       }
 
       const configFound = Boolean(findConfigCollection({ collections: device.collections }));
-      const link: DeviceLink | null = configFound
-        ? 'usb'
-        : findWirelessCollection({ collections: device.collections })
-          ? 'wireless'
-          : null;
+      const wirelessCollection = configFound
+        ? null
+        : findWirelessCollection({ collections: device.collections });
+      const link: DeviceLink | null = configFound ? 'usb' : wirelessCollection ? 'wireless' : null;
 
       const handleDisconnect = () => {
         log?.('keyboard disconnected', 'warn');
@@ -144,7 +147,7 @@ export function useDevice({ hid, log }: { hid?: WebHid; log?: LogFn } = {}) {
       log?.('device opened', 'ok');
       if (link === 'wireless') {
         log?.(
-          '2.4 GHz link: configuration goes over 0xFF60/0x0061. The screen and key uploads are not sent on this link yet.',
+          `2.4 GHz link: output reports of ${wirelessCollection ? wirelessOutputBytes(wirelessCollection) : 0} bytes. The screen and key uploads are not sent on this link yet.`,
           'warn',
         );
       } else if (link === null) {

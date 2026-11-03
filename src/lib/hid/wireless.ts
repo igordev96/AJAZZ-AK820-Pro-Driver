@@ -62,7 +62,19 @@ export function findWirelessCollection(device: {
 export function findWirelessInterface<T extends { collections: readonly CollectionNode[] }>(
   devices: readonly T[],
 ): T | null {
-  return devices.find((device) => findWirelessCollection(device) !== null) ?? null;
+  const candidates = devices
+    .map((device) => ({ device, collection: findWirelessCollection(device) }))
+    .filter(
+      (entry): entry is { device: T; collection: CollectionNode } => entry.collection !== null,
+    );
+
+  // The receiver exposes a 32-byte and a 64-byte interface; only the smaller
+  // one accepts the captured frames, so size decides before order does.
+  const exact = candidates.find(
+    ({ collection }) => wirelessOutputBytes(collection) === WIRELESS_FRAME_SIZE,
+  );
+
+  return (exact ?? candidates[0])?.device ?? null;
 }
 
 const checksum = (frame: Uint8Array): number => {
