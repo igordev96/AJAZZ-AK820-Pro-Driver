@@ -66,4 +66,12 @@ describe('PendingBar', () => {
     expect(screen.getByRole('button', { name: /clear all fn overrides/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /upload changes/i })).toBeDisabled();
   });
+
+  it('says key uploads are not sent over 2.4 GHz and disables both writes', () => {
+    render(<PendingBar {...baseProps} wireless />);
+
+    expect(screen.getByText('Key uploads are not sent over 2.4 GHz yet.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /upload 2 changes/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /restore factory map/i })).toBeDisabled();
+  });
 });

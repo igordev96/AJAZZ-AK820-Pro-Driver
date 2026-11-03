@@ -656,6 +656,7 @@ export function App() {
                   connected={connected}
                   busy={busy}
                   confirming={confirming}
+                  wireless={device.link === 'wireless'}
                   onUpload={handleUpload}
                   onRestore={handleRestore}
                   onConfirmRestore={handleConfirmRestore}

@@ -517,8 +517,12 @@ directly. A key patch carries the same 4-byte record as the wired table (`02 <mo
   physical key. Fn + A to Mute was `0D 04 38 03 E2 00 00`.
 - **No replies to patches.** Two key changes produced no input report. The vendor app does not
   wait for one. The heartbeat and the clock write did echo.
-- **Init and heartbeat.** `02 00 00` at connect and `20 01 00` every fifteen seconds. Whether the
-  keyboard needs them, or they only keep the vendor app informed, is not tested.
+- **Init and heartbeat.** `02 00 00` at connect and `20 01 00` every fifteen seconds. The receiver
+  needs both before it accepts a record: on 3 Nov 2026 the same light frame did nothing until the
+  page sent init and a heartbeat first, and applied immediately once it did.
+- **Confirmed on the board** (Test 18): the light, the screen clock and the device settings all
+  arrived over this link. Key patches were confirmed separately, with the top-layer and Fn writes
+  captured and CapsLock → A, `1` → `t` and Fn + A → Mute seen on the board.
 
 ### Not known
 

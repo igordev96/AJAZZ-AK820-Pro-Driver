@@ -511,3 +511,26 @@ No problem surfaced in the session. The three shortcut blocks are the part this 
 
 Not tested: whether the board sleeps after the interval, and whether the response levels feel
 different. Nothing in the UI or the README claims either.
+
+## Test 18 — the 2.4 GHz receiver (3 Nov 2026)
+
+Build: the working tree at `92c1301`, dev server on `http://localhost:5173`, Chrome on Windows, the
+keyboard in 2.4 GHz mode with the vendor app closed.
+
+The page selected the receiver, `0C45:FDFD`, took the 32-byte `0xFF60/0x0061` interface and logged
+the link. Three writes went out and the user confirmed each on the board:
+
+- **Light**: the light changed colour.
+- **Clock**: the screen clock changed.
+- **Device settings**: the Windows key was blocked while the box was ticked, and worked again when
+  it was cleared.
+
+**Found.** The receiver ignores records until it has seen the init frame (`02`) and a heartbeat
+(`20 01 00`). Without them the first light write changed nothing on the board; with them the same
+record applied on the first try. The frame bytes and the checksum were identical in both attempts,
+so the missing piece was the handshake, not the record.
+
+Key uploads are not sent over this link yet. The pending bar says so and disables the upload and
+restore buttons rather than letting a click do nothing.
+
+Not tested: whether these writes survive a power cycle, and how the keyboard sleeps on this link.

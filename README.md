@@ -38,7 +38,9 @@ confirmed on the board after a commit-timing fix. Test 16 added the 20 effects w
 direction; every mode worked, and a left/right direction bug was found and fixed. The interface
 work that followed changed no bytes, so it has no hardware test. Test 17, on 2 Nov 2026, added the
 five device settings: the three shortcut blocks work, and the sleep and response-time writes were
-accepted, though their effects were not observed.
+accepted, though their effects were not observed. Test 18, on 3 Nov 2026, confirmed the 2.4 GHz
+path: the light, the clock and the device settings reach the board through the receiver, once the
+page has sent the init and heartbeat frames it waits for.
 [docs/02-hardware-tests.md](docs/02-hardware-tests.md) records the evidence.
 
 ## What it does
