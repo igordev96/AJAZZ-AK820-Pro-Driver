@@ -135,11 +135,6 @@ export type WirelessDevice = {
   sendReport?(reportId: number, data: BufferSource): Promise<void>;
 };
 
-export type KeyPatch = {
-  readonly index: number;
-  readonly record: Uint8Array;
-};
-
 /** How long to wait between key patches. The vendor only ever sent one at a time. */
 const KEY_GAP_MS = 15;
 
@@ -161,7 +156,12 @@ export class WirelessClient {
     this.ready ??= (async () => {
       await this.write(WIRELESS_COMMANDS.init);
       await this.write(WIRELESS_COMMANDS.heartbeat, Uint8Array.from([0x00]));
-    })();
+    })().catch((error: unknown) => {
+      // A handshake that failed must be tried again by the next write, so a
+      // rejected promise is not kept as readiness.
+      this.ready = null;
+      throw error;
+    });
 
     return this.ready;
   }
@@ -186,7 +186,10 @@ export class WirelessClient {
    * One patch per key: the four-byte record the wired table would carry at that
    * slot, with the key index in the frame header. There is no commit.
    */
-  async sendKeys(layer: 'top' | 'fn', patches: readonly KeyPatch[]): Promise<number> {
+  async sendKeys(
+    layer: 'top' | 'fn',
+    patches: readonly { readonly index: number; readonly record: Uint8Array }[],
+  ): Promise<number> {
     if (patches.length === 0) return 0;
 
     await this.ensureReady();

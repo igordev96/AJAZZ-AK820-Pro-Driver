@@ -117,19 +117,19 @@ describe('findWirelessCollection', () => {
   });
 });
 
-describe('WirelessClient', () => {
-  const sent = () => {
-    const frames: Uint8Array[] = [];
-    return {
-      frames,
-      device: {
-        sendReport: async (_id: number, data: BufferSource) => {
-          frames.push(new Uint8Array(data as Uint8Array));
-        },
+const sent = () => {
+  const frames: Uint8Array[] = [];
+  return {
+    frames,
+    device: {
+      sendReport: async (_id: number, data: BufferSource) => {
+        frames.push(new Uint8Array(data as Uint8Array));
       },
-    };
+    },
   };
+};
 
+describe('WirelessClient', () => {
   it('sends the init frame with no payload', async () => {
     const recorder = sent();
     await new WirelessClient(recorder.device).init();
@@ -245,5 +245,30 @@ describe('WirelessClient', () => {
     await expect(client.sendKeys('top', [{ index: 1, record: new Uint8Array(3) }])).rejects.toThrow(
       '4-byte',
     );
+  });
+
+  it('retries the handshake after a failed first write', async () => {
+    const frames: Uint8Array[] = [];
+    let fail = true;
+    const device = {
+      sendReport: async (_id: number, data: BufferSource) => {
+        if (fail) {
+          fail = false;
+          throw new Error('device busy');
+        }
+        frames.push(new Uint8Array(data as Uint8Array));
+      },
+    };
+    const client = new WirelessClient(device);
+
+    await expect(client.sendLight(new Uint8Array(16))).rejects.toThrow('device busy');
+    await client.sendLight(new Uint8Array(16));
+
+    // A second init, heartbeat and record: the failed handshake was not cached.
+    expect(frames.map((frame) => frame[0])).toEqual([
+      WIRELESS_COMMANDS.init,
+      WIRELESS_COMMANDS.heartbeat,
+      WIRELESS_COMMANDS.light,
+    ]);
   });
 });
