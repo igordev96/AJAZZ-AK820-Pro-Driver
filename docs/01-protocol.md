@@ -526,10 +526,22 @@ directly. A key patch carries the same 4-byte record as the wired table (`02 <mo
   the zero record. Test 20 sent a whole-layer restore as 81 patches, 15 ms apart, and the map came
   back correct, which also shows that one patch leaves the other keys alone.
 
+### What survives a power cycle
+
+Test 21 switched the keyboard off and on several times over the 2.4 GHz link. The light, the clock
+and the key map all came back as they were left. The device settings did not: the Windows key block
+was gone after the first power-on, and the key typed its shortcut again.
+
+The three records differ in what the board keeps. The light and the clock are written to storage on
+the keyboard, and the key patches go to the same place the wired table goes. The settings record
+looks like a runtime state that one power-on ends, which fits the vendor app writing it on every
+launch rather than offering a save. The page says so next to the settings, and offers the send again
+after the keyboard has been switched off.
+
+Whether the wired link behaves the same is not tested.
+
 ### Not known
 
-- Whether a settings or lighting write over the dongle survives a power cycle the way the wired
-  ones do.
 - Whether the screen channel exists on this link. There is no `0xFF68` collection, so the
   animation card stays disabled.
 - What the receiver does with a malformed checksum. Nothing in the captures is malformed.

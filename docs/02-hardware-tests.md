@@ -585,3 +585,33 @@ depend on the order the frames go out in.
 
 Not tested: whether the restored map survives a power cycle, and what the receiver does when a frame
 in the middle of such a run is lost.
+
+---
+
+## Test 21 — power cycle over the 2.4 GHz receiver (3 Nov 2026)
+
+Build: the working tree at `d083ef7`, dev server on `http://localhost:5173`, Chrome on Windows, the
+keyboard in 2.4 GHz mode with the vendor app closed.
+
+The user switched the keyboard off and on several times, and looked at the board after each power-on.
+
+What held:
+
+- **Light**: the static colour sent in Test 18 came back.
+- **Clock**: the screen clock still had the time that was sent.
+- **Key map**: the factory restore from Test 20 was still in place.
+
+What did not:
+
+- **Device settings**: the Windows key block was gone after the first power-on, and the key typed
+  its shortcut again.
+
+**Found.** The light and clock records and the key patches are written to something the keyboard
+keeps, while the settings record is not: it behaves like a runtime state that a power-on ends. That
+fits the vendor app, which writes the five values on every launch and has no save button for them.
+
+The page now says so under the settings and asks for another write after the keyboard has been
+powered off, since nothing is read back and it cannot notice the change on its own.
+
+Not tested: whether the wired link keeps the shortcuts through a power cycle, and whether the
+Alt+F4 and Alt+Tab blocks behave like the Windows key block.
