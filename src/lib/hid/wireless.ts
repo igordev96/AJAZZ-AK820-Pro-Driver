@@ -124,9 +124,12 @@ export type WirelessDevice = {
  * silent, so nothing here waits for confirmation.
  */
 export class WirelessClient {
+  private initialised = false;
+
   constructor(private readonly device: WirelessDevice) {}
 
   async init(): Promise<void> {
+    this.initialised = true;
     await this.send(WIRELESS_COMMANDS.init);
   }
 
@@ -146,6 +149,13 @@ export class WirelessClient {
     if (!this.device.sendReport) {
       throw new Error('this browser cannot send output reports');
     }
+
+    // The vendor app sends its init frame once, before the first record.
+    if (!this.initialised && command !== WIRELESS_COMMANDS.init) {
+      this.initialised = true;
+      await this.device.sendReport(0, buildWirelessFrame(WIRELESS_COMMANDS.init));
+    }
+
     await this.device.sendReport(0, buildWirelessFrame(command, payload));
   }
 }
