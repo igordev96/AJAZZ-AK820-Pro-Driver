@@ -61,8 +61,9 @@ at all. The state carries `link: 'usb' | 'wireless'` and the app branches on it:
 Over wireless the same records go out: light, clock and device settings as one frame each, and key
 changes as one patch per key, taken from `pendingKeyPatches` at `idx * 4` of the table the wired
 path would have sent, so the encoder stays the single source. Patches are paced 15 ms apart and
-silent, so `applied` moves when they are sent rather than when the keyboard replies. The screen has
-no channel on this link, so the animation card stays disabled.
+silent, so `applied` moves when they are sent rather than when the keyboard replies. A whole-layer
+restore is 81 patches in a single run; Test 20 sent that burst and the map came back correct. The
+screen has no channel on this link, so the animation card stays disabled.
 
 ## 3. Transport
 

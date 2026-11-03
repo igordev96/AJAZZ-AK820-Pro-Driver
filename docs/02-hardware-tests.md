@@ -533,6 +533,9 @@ so the missing piece was the handshake, not the record.
 Key uploads are not sent over this link yet. The pending bar says so and disables the upload and
 restore buttons rather than letting a click do nothing.
 
+*Added later: that was the build at the time. Test 19 sent key patches over the same link, and Test
+20 restored the whole top layer with them.*
+
 Not tested: whether these writes survive a power cycle, and how the keyboard sleeps on this link.
 
 ## Test 19 — key changes over the 2.4 GHz receiver (3 Nov 2026)
@@ -558,3 +561,27 @@ does not confirm them."*
 
 Not tested: restoring the whole top layer, which is 81 patches in one run, and whether these
 patches survive a power cycle.
+
+---
+
+## Test 20 — restore the whole map over the 2.4 GHz receiver (3 Nov 2026)
+
+Build: the working tree at `44d4ad9`, dev server on `http://localhost:5173`, Chrome on Windows, the
+keyboard in 2.4 GHz mode with the vendor app closed.
+
+Test 19 left one case open: a run that writes far more than a single key.
+
+The user pressed **Restore factory map** on the top layer and confirmed. The page sent one `03`
+patch per key, 15 ms apart, 81 frames in the log, with no commit and no reply to any of them. The
+burst took a little over a second of writing.
+
+The user then typed across the board: the keys they had changed were back to their factory
+functions and the rest of the map was untouched.
+
+**Found.** The 15 ms gap copied from the vendor's one-at-a-time writes is enough on its own. No
+slower pacing and no acknowledgement was needed for the burst. The run also covers what Test 19
+could not, since a patch to one key leaves the other positions alone and a full restore does not
+depend on the order the frames go out in.
+
+Not tested: whether the restored map survives a power cycle, and what the receiver does when a frame
+in the middle of such a run is lost.

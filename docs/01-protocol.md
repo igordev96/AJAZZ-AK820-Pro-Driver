@@ -523,7 +523,8 @@ directly. A key patch carries the same 4-byte record as the wired table (`02 <mo
 - **Confirmed on the board** (Test 18): the light, the screen clock and the device settings all
   arrived over this link. Key patches were confirmed with the page itself (Test 19): CapsLock → A
   and Fn + A → Mute went out as `03` and `0D` frames and worked, and both were cleared again with
-  the zero record.
+  the zero record. Test 20 sent a whole-layer restore as 81 patches, 15 ms apart, and the map came
+  back correct, which also shows that one patch leaves the other keys alone.
 
 ### Not known
 

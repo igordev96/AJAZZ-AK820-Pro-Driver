@@ -41,7 +41,8 @@ five device settings: the three shortcut blocks work, and the sleep and response
 accepted, though their effects were not observed. Test 18, on 3 Nov 2026, confirmed the 2.4 GHz
 path: the light, the clock and the device settings reach the board through the receiver, once the
 page has sent the init and heartbeat frames it waits for. Test 19 confirmed key changes over the
-same link, one patch per key, with no confirmation from the keyboard.
+same link, one patch per key, with no confirmation from the keyboard, and Test 20 restored the whole
+top layer that way.
 [docs/02-hardware-tests.md](docs/02-hardware-tests.md) records the evidence.
 
 ## What it does
