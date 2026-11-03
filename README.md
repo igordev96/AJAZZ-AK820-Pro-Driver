@@ -65,9 +65,10 @@ VID `0C45` with PID `8009` (tested), `800A` or `FDFD`. Only the `8009` board has
 hardware, and it is the ANSI US model with 81 keys. Other layouts and variants may share the
 protocol, but they have not been tried.
 
-`FDFD` is the 2.4 GHz receiver. It exposes a different channel with no feature reports, so this
-page recognises it but cannot configure it yet; the protocol notes are in
-[docs/01-protocol.md](docs/01-protocol.md) §13.
+`FDFD` is the 2.4 GHz receiver. It has no feature reports, so the wired path cannot reach it; the
+page talks to it over `0xFF60/0x0061` with output reports instead, and sends the light, the clock
+and the device settings that way. Key uploads and the screen are not sent over this link yet. The
+protocol is in [docs/01-protocol.md](docs/01-protocol.md) §13.
 
 ## What it cannot do
 

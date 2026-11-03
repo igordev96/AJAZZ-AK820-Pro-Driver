@@ -21,6 +21,13 @@ const choose = async (user: ReturnType<typeof userEvent.setup>, label: string, o
 };
 
 describe('DevicePanel', () => {
+  it('names the link the page writes over', () => {
+    const { container } = renderPanel({ wireless: true });
+
+    expect(container.textContent).toContain('writes over 2.4 GHz');
+    expect(container.textContent).toContain('2.4 GHz column is the one it applies');
+  });
+
   it('shows the response time for each level and link', () => {
     renderPanel();
 

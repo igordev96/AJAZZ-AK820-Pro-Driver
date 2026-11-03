@@ -4,6 +4,7 @@ import {
   findScreenCollection,
   flattenCollections,
 } from '@/lib/hid/collections';
+import { findWirelessCollection, findWirelessInterface } from '@/lib/hid/wireless';
 import type { LogFn } from '@/lib/hid/transfer';
 import {
   buildWebHidFilters,
@@ -16,6 +17,9 @@ import {
 
 export type DeviceStatus = 'idle' | 'connecting' | 'connected' | 'error';
 
+/** How the keyboard is reached: the wired configuration interface or the receiver. */
+export type DeviceLink = 'usb' | 'wireless';
+
 export type DeviceState = {
   readonly status: DeviceStatus;
   readonly device: WebHidDevice | null;
@@ -23,6 +27,7 @@ export type DeviceState = {
   readonly name: string | null;
   readonly vendorId: number | null;
   readonly productId: number | null;
+  readonly link: DeviceLink | null;
   readonly configFound: boolean;
   readonly screenFound: boolean;
   readonly error: string | null;
@@ -35,6 +40,7 @@ const initialState: DeviceState = {
   name: null,
   vendorId: null,
   productId: null,
+  link: null,
   configFound: false,
   screenFound: false,
   error: null,
@@ -60,7 +66,10 @@ export function useDevice({ hid, log }: { hid?: WebHid; log?: LogFn } = {}) {
 
     try {
       const devices = await available.requestDevice({ filters: buildWebHidFilters() });
-      const device = pickDevice(devices);
+      const configDevice =
+        devices.find((item) => findConfigCollection({ collections: item.collections })) ?? null;
+      const wirelessDevice = configDevice ? null : findWirelessInterface(devices);
+      const device = configDevice ?? wirelessDevice ?? pickDevice(devices);
       const screenCandidate = pickScreenDevice(devices);
 
       if (!device) {
@@ -100,6 +109,11 @@ export function useDevice({ hid, log }: { hid?: WebHid; log?: LogFn } = {}) {
       }
 
       const configFound = Boolean(findConfigCollection({ collections: device.collections }));
+      const link: DeviceLink | null = configFound
+        ? 'usb'
+        : findWirelessCollection({ collections: device.collections })
+          ? 'wireless'
+          : null;
 
       const handleDisconnect = () => {
         log?.('keyboard disconnected', 'warn');
@@ -117,7 +131,8 @@ export function useDevice({ hid, log }: { hid?: WebHid; log?: LogFn } = {}) {
         name: device.productName ?? 'AK820',
         vendorId: device.vendorId,
         productId: device.productId,
-        configFound,
+        link,
+        configFound: link !== null,
         screenFound,
         error: null,
       });
@@ -127,7 +142,12 @@ export function useDevice({ hid, log }: { hid?: WebHid; log?: LogFn } = {}) {
         'ok',
       );
       log?.('device opened', 'ok');
-      if (!configFound) {
+      if (link === 'wireless') {
+        log?.(
+          '2.4 GHz link: configuration goes over 0xFF60/0x0061. The screen and key uploads are not sent on this link yet.',
+          'warn',
+        );
+      } else if (link === null) {
         log?.(
           'config interface 0xFF13/0x0001 not found. Use USB mode and close the vendor app.',
           'err',

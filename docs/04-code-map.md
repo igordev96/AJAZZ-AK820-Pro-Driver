@@ -15,7 +15,8 @@ src/components/ui/       Button, Input, Popover, Calendar, Tabs, Checkbox, Slide
                          Command, Combobox, ToggleGroup, Sheet
 src/components/          StatusNote, TabRow
 src/lib/keymap/          constants, factory keys, record encoding, names, parsing, table
-src/lib/hid/             protocol, client, collections, WebHID types, transfer, time, probes, raw
+src/lib/hid/             protocol, client, collections, wireless, WebHID types, transfer, time,
+                         probes, raw
 src/lib/screen/          RGB565, frame layout, animation payload
 src/lib/lighting/        the 64-byte record, preview motion, accepted-light wording
 src/lib/device/          the 64-byte settings record, response levels, sleep options
@@ -50,6 +51,13 @@ React components render and dispatch. They never call `navigator.hid`. `useDevic
 chooser, open and close, and the disconnect listener. Uploads go through `TransferService`. The
 advanced drawer calls the probe services. Both receive a transport, and writes happen only in
 event handlers.
+
+`useDevice` records how the keyboard was reached. A device with the `0xFF13` collection is the
+wired board; a device with `0xFF60/0x0061` is the 2.4 GHz receiver, which has no feature reports
+at all. The state carries `link: 'usb' | 'wireless'` and the app branches on it: wired goes through
+`TransferService`, wireless through `WirelessClient` in `src/lib/hid/wireless.ts`, which sends
+33-byte output reports with a checksum. Over wireless the app sends the light, the clock and the
+device settings; key uploads and the screen are gated off for now. The banner says so.
 
 ## 3. Transport
 

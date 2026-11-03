@@ -41,6 +41,8 @@ import {
 } from '@/lib/editor';
 import { hex } from '@/lib/format';
 import { HidClient, STATUS, TransferService, formatClock, isTransportFailed } from '@/lib/hid';
+import { buildTimePacket } from '@/lib/hid/time';
+import { WirelessClient } from '@/lib/hid/wireless';
 import { FN_LOCKED, buildTable } from '@/lib/keymap';
 import { buildLightRecord, describeLight } from '@/lib/lighting';
 import { buildAnimationPayload } from '@/lib/screen';
@@ -134,11 +136,17 @@ export function App() {
   } | null>(null);
 
   const transfer = useMemo(() => {
-    if (!device.device || !device.configFound) return null;
+    if (!device.device || !device.configFound || device.link !== 'usb') return null;
     const config = new HidClient(device.device);
     const screen = device.screenDevice ? new HidClient(device.screenDevice) : null;
     return new TransferService(config, realClock, log, screen ?? undefined);
-  }, [device.device, device.screenDevice, device.configFound, log]);
+  }, [device.device, device.screenDevice, device.configFound, device.link, log]);
+
+  // The receiver takes records over output reports and applies patches silently.
+  const wireless = useMemo(
+    () => (device.device && device.link === 'wireless' ? new WirelessClient(device.device) : null),
+    [device.device, device.link],
+  );
 
   const rows = getActiveRows(state);
   const selectedRow = getSelectedRow(state);
@@ -149,7 +157,10 @@ export function App() {
   const sendRows = useCallback(
     async (rowsToSend: readonly EditorRow[], layer: Layer, afterState: EditorState) => {
       if (!transfer) {
-        log('Connect the keyboard first.', 'warn');
+        log(
+          wireless ? 'Key uploads are not sent over 2.4 GHz yet.' : 'Connect the keyboard first.',
+          'warn',
+        );
         return false;
       }
       if (busyRef.current) return false;
@@ -195,7 +206,7 @@ export function App() {
         setBusy(false);
       }
     },
-    [dispatch, log, transfer],
+    [dispatch, log, transfer, wireless],
   );
 
   const handleUsage = useCallback(
@@ -252,7 +263,7 @@ export function App() {
 
   const handleSendTime = useCallback(
     async (at: Date) => {
-      if (!transfer) {
+      if (!transfer && !wireless) {
         log('Connect the keyboard first.', 'warn');
         return;
       }
@@ -263,6 +274,14 @@ export function App() {
       setTimeStatus({ kind: 'idle' });
 
       try {
+        if (wireless) {
+          await wireless.sendClock(buildTimePacket(at));
+          setTimeStatus({ kind: 'ok', at });
+          log(`Time sent. The screen clock is set to ${formatClock(at)}.`, 'ok');
+          return;
+        }
+
+        if (!transfer) return;
         const result = await transfer.sendTime(at);
 
         if (result.busy) {
@@ -308,7 +327,7 @@ export function App() {
         setBusy(false);
       }
     },
-    [log, transfer],
+    [log, transfer, wireless],
   );
 
   const handleSendAnimation = useCallback(
@@ -392,7 +411,7 @@ export function App() {
   const handleApplyLight = useCallback(
     async (values: LightingValues) => {
       const { mode, color, brightness, speed, colorful, direction } = values;
-      if (!transfer) {
+      if (!transfer && !wireless) {
         log('Connect the keyboard first.', 'warn');
         return;
       }
@@ -413,6 +432,16 @@ export function App() {
           colorful,
           direction,
         });
+
+        if (wireless) {
+          await wireless.sendLight(record);
+          const { message, log: line } = describeLight(values);
+          setLightingStatus({ kind: 'ok', message });
+          log(line, 'ok');
+          return;
+        }
+
+        if (!transfer) return;
         const result = await transfer.sendLighting(record);
 
         if (result.busy) {
@@ -460,12 +489,12 @@ export function App() {
         setBusy(false);
       }
     },
-    [log, transfer],
+    [log, transfer, wireless],
   );
 
   const handleApplySettings = useCallback(
     async (values: DeviceSettings) => {
-      if (!transfer) {
+      if (!transfer && !wireless) {
         log('Connect the keyboard first.', 'warn');
         return;
       }
@@ -477,6 +506,16 @@ export function App() {
 
       try {
         const record = buildSettingsRecord(values);
+
+        if (wireless) {
+          await wireless.sendSettings(record);
+          const { message, log: line } = describeSettings(values);
+          setDeviceStatus({ kind: 'ok', message });
+          log(line, 'ok');
+          return;
+        }
+
+        if (!transfer) return;
         const result = await transfer.sendSettings(record);
 
         if (result.busy) {
@@ -525,7 +564,7 @@ export function App() {
         setBusy(false);
       }
     },
-    [log, transfer],
+    [log, transfer, wireless],
   );
 
   const handleOpenAdvanced = useCallback(() => {
@@ -556,9 +595,11 @@ export function App() {
     ? 'WebHID is not available in this browser. Use Chrome, Edge or Opera on desktop.'
     : device.error
       ? device.error
-      : device.status === 'connected' && !device.configFound
-        ? 'The configuration interface was not found. Use USB mode and close the vendor app.'
-        : null;
+      : device.status === 'connected' && device.link === 'wireless'
+        ? 'Connected over 2.4 GHz. The light, clock and device settings go out; key uploads and the screen do not, yet.'
+        : device.status === 'connected' && !device.configFound
+          ? 'The configuration interface was not found. Use USB mode and close the vendor app.'
+          : null;
 
   return (
     <div className="flex min-h-screen flex-col bg-ink text-ivory">
@@ -674,6 +715,7 @@ export function App() {
                   connected={connected}
                   busy={busy}
                   status={deviceStatus}
+                  wireless={device.link === 'wireless'}
                   onApply={handleApplySettings}
                 />
               </div>

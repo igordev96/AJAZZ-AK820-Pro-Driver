@@ -65,8 +65,66 @@ describe('useDevice', () => {
     expect(result.current.device).toBe(device);
     expect(result.current.name).toBe('AK820');
     expect(result.current.configFound).toBe(true);
+    expect(result.current.link).toBe('usb');
     expect(hid.requestDevice).toHaveBeenCalledWith({ filters: buildWebHidFilters() });
     expect(log).toHaveBeenCalledWith(expect.stringContaining('selected AK820'), 'ok');
+  });
+
+  it('connects over the 2.4 GHz receiver through the 0xFF60 collection', async () => {
+    const { device } = makeDevice({
+      productName: '2.4G Dongle',
+      productId: 0xfdfd,
+      collections: [
+        { usagePage: 0x000c, usage: 0x0001 },
+        {
+          usagePage: 0xff60,
+          usage: 0x0061,
+          outputReports: [{ reportId: 0, items: [{ reportSize: 8, reportCount: 32 }] }],
+          inputReports: [{ reportId: 0, items: [{ reportSize: 8, reportCount: 32 }] }],
+        },
+      ],
+    });
+    const log = vi.fn();
+    const { result } = renderHook(() => useDevice({ hid: makeHid([device]), log }));
+
+    await act(async () => {
+      await result.current.connect();
+    });
+
+    expect(result.current.status).toBe('connected');
+    expect(result.current.device).toBe(device);
+    expect(result.current.link).toBe('wireless');
+    expect(result.current.configFound).toBe(true);
+    expect(result.current.screenFound).toBe(false);
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('2.4 GHz link'), 'warn');
+  });
+
+  it('prefers the receiver interface over a composite one without config', async () => {
+    const { device: composite } = makeDevice({
+      productName: 'Composite',
+      collections: [{ usagePage: 0x0001, usage: 0x0006 }],
+    });
+    const { device: receiver } = makeDevice({
+      productName: '2.4G Dongle',
+      productId: 0xfdfd,
+      collections: [
+        {
+          usagePage: 0xff60,
+          usage: 0x0061,
+          outputReports: [{ reportId: 0, items: [{ reportSize: 8, reportCount: 32 }] }],
+        },
+      ],
+    });
+    const { result } = renderHook(() =>
+      useDevice({ hid: makeHid([composite, receiver]), log: vi.fn() }),
+    );
+
+    await act(async () => {
+      await result.current.connect();
+    });
+
+    expect(result.current.device).toBe(receiver);
+    expect(result.current.link).toBe('wireless');
   });
 
   it('returns to idle when the device disconnects', async () => {
@@ -107,6 +165,7 @@ describe('useDevice', () => {
 
     expect(result.current.status).toBe('connected');
     expect(result.current.configFound).toBe(false);
+    expect(result.current.link).toBeNull();
   });
 
   it('reports a permission or open failure', async () => {

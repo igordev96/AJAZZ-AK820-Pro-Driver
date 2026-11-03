@@ -28,11 +28,19 @@ export type DevicePanelProps = {
   busy: boolean;
   status: DeviceStatus;
   onApply: (settings: DeviceSettings) => void;
+  /** True when the page reached the keyboard through the 2.4 GHz receiver. */
+  wireless?: boolean;
 };
 
 const flagRow = 'rounded-control border border-line bg-ink px-3 py-2.5';
 
-export function DevicePanel({ connected, busy, status, onApply }: DevicePanelProps) {
+export function DevicePanel({
+  connected,
+  busy,
+  status,
+  onApply,
+  wireless = false,
+}: DevicePanelProps) {
   const [settings, setSettings] = useState<DeviceSettings>(DEFAULT_DEVICE_SETTINGS);
   const change = (patch: Partial<DeviceSettings>) => {
     setSettings((current) => ({ ...current, ...patch }));
@@ -44,8 +52,9 @@ export function DevicePanel({ connected, busy, status, onApply }: DevicePanelPro
         <div className="rounded-panel border border-line bg-surface p-4">
           <h2 className="text-sm font-semibold">Response time</h2>
           <p className="mt-1 text-[11px] leading-relaxed text-muted">
-            The vendor app's figures. This page writes over USB, so the wired column is the one it
-            applies; the other two describe the keyboard on its other links.
+            The vendor app's figures. This page writes over {wireless ? '2.4 GHz' : 'USB'}, so the{' '}
+            {wireless ? '2.4 GHz' : 'wired'} column is the one it applies; the other two describe
+            the keyboard on its other links.
           </p>
 
           <table className="mt-3 w-full text-left text-xs">
