@@ -464,3 +464,66 @@ Confirmed on the board in `docs/02-hardware-tests.md` Test 17: the three shortcu
 the sleep and response writes are accepted, though those two effects were not observed.
 
 
+
+---
+
+## 13. The 2.4 GHz dongle
+
+The receiver enumerates as `VID_0C45 PID_FDFD`. It exposes **no `0xFF13` and no feature reports
+at all**, so the wired transport cannot reach it. The configuration channel is `0xFF60/0x0061`
+with 33-byte output and input reports. Chrome shows it in the WebHID chooser; the wired page
+selects it and then reports that the configuration interface is missing.
+
+Captured on 3 Nov 2026 with `dongle-open.log`, `dongle-keymap.log`, `dongle-keymap2.log`,
+`dongle-fn.log` and `dongle-settings.log`, all against the vendor app in 2.4 GHz mode.
+
+### The frame
+
+Every output report is 33 bytes:
+
+```
+byte 0    report id, 0x00
+byte 1    command
+byte 2    payload length
+byte 3    key index for 0x03 and 0x0D, 0x00 otherwise
+byte 4..  payload
+byte 32   checksum = sum(bytes 0..31) & 0xFF
+```
+
+The checksum is arithmetic and holds for every captured frame, including the heartbeat.
+
+### Commands
+
+| Command | Index | Payload | Meaning |
+|---|---|---|---|
+| `0x02` | 0 | none | init, sent once when the vendor app connects |
+| `0x03` | key | 4-byte record | top-layer key patch |
+| `0x0D` | key | 4-byte record | Fn-layer key patch |
+| `0x05` | 0 | fields 0-13 + `AA 55` | lighting, §11 |
+| `0x0C` | 0 | fields 0-13 + `AA 55` | clock, §9 |
+| `0x07` | 0 | fields 0-13 + `AA 55` | device settings, §12 |
+| `0x20` | 0 | `00` | heartbeat, every 15 s |
+
+The payloads are the wired records, compacted: the meaningful prefix of the 14-byte record and
+the `AA 55` trailer moved to bytes 14 and 15. The light, clock and settings captures show this
+directly. A key patch carries the same 4-byte record as the wired table (`02 <mod> <usage> 00`,
+`03 <lo> <hi> 00`), with the key index in byte 3 instead of a table slot.
+
+### What the captures show
+
+- **Single key at a time.** The vendor app never sends the 576-byte table over the dongle. One
+  `0x03` write changes one key and takes effect immediately, with no commit.
+- **The layer is the command.** `0x03` for the top layer, `0x0D` for Fn; the index stays the
+  physical key. Fn + A to Mute was `0D 04 38 03 E2 00 00`.
+- **No replies to patches.** Two key changes produced no input report. The vendor app does not
+  wait for one. The heartbeat and the clock write did echo.
+- **Init and heartbeat.** `02 00 00` at connect and `20 01 00` every fifteen seconds. Whether the
+  keyboard needs them, or they only keep the vendor app informed, is not tested.
+
+### Not known
+
+- Whether a settings or lighting write over the dongle survives a power cycle the way the wired
+  ones do.
+- Whether the screen channel exists on this link. There is no `0xFF68` collection, so the
+  animation card stays disabled.
+- What the receiver does with a malformed checksum. Nothing in the captures is malformed.
