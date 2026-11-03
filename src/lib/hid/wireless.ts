@@ -1,3 +1,5 @@
+import type { LogFn } from './transfer';
+import { hex } from '@/lib/format';
 import type { CollectionNode, CollectionReport } from './collections';
 import { flattenCollections } from './collections';
 
@@ -136,13 +138,25 @@ export type WirelessDevice = {
  * silent, so nothing here waits for confirmation.
  */
 export class WirelessClient {
-  private initialised = false;
+  private ready: Promise<void> | null = null;
 
-  constructor(private readonly device: WirelessDevice) {}
+  constructor(
+    private readonly device: WirelessDevice,
+    private readonly log: LogFn = () => {},
+  ) {}
+
+  /** Init and heartbeat, once, before the first record, as the vendor app does. */
+  private ensureReady(): Promise<void> {
+    this.ready ??= (async () => {
+      await this.write(WIRELESS_COMMANDS.init);
+      await this.write(WIRELESS_COMMANDS.heartbeat, Uint8Array.from([0x00]));
+    })();
+
+    return this.ready;
+  }
 
   async init(): Promise<void> {
-    this.initialised = true;
-    await this.send(WIRELESS_COMMANDS.init);
+    await this.ensureReady();
   }
 
   async sendLight(record: Uint8Array): Promise<void> {
@@ -158,16 +172,17 @@ export class WirelessClient {
   }
 
   private async send(command: number, payload?: Uint8Array): Promise<void> {
+    await this.ensureReady();
+    await this.write(command, payload);
+  }
+
+  private async write(command: number, payload?: Uint8Array): Promise<void> {
     if (!this.device.sendReport) {
       throw new Error('this browser cannot send output reports');
     }
 
-    // The vendor app sends its init frame once, before the first record.
-    if (!this.initialised && command !== WIRELESS_COMMANDS.init) {
-      this.initialised = true;
-      await this.device.sendReport(0, buildWirelessFrame(WIRELESS_COMMANDS.init));
-    }
-
-    await this.device.sendReport(0, buildWirelessFrame(command, payload));
+    const frame = buildWirelessFrame(command, payload);
+    this.log(`SEND  ${hex(frame)}`, 'info');
+    await this.device.sendReport(0, frame);
   }
 }

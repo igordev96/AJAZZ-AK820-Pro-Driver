@@ -134,12 +134,14 @@ describe('WirelessClient', () => {
     const recorder = sent();
     await new WirelessClient(recorder.device).init();
 
-    expect(recorder.frames).toHaveLength(1);
+    expect(recorder.frames).toHaveLength(2);
     expect(recorder.frames[0]?.[0]).toBe(WIRELESS_COMMANDS.init);
     expect(recorder.frames[0]?.[1]).toBe(0);
+    expect(recorder.frames[1]?.[0]).toBe(WIRELESS_COMMANDS.heartbeat);
+    expect(recorder.frames[1]?.[1]).toBe(1);
   });
 
-  it('sends init before the first record, and only once', async () => {
+  it('sends init and the heartbeat before the first record, and only once', async () => {
     const recorder = sent();
     const client = new WirelessClient(recorder.device);
     const record = new Uint8Array(64);
@@ -149,9 +151,21 @@ describe('WirelessClient', () => {
 
     expect(recorder.frames.map((frame) => frame[0])).toEqual([
       WIRELESS_COMMANDS.init,
+      WIRELESS_COMMANDS.heartbeat,
       WIRELESS_COMMANDS.light,
       WIRELESS_COMMANDS.clock,
     ]);
+  });
+
+  it('logs the frame it sends', async () => {
+    const recorder = sent();
+    const lines: string[] = [];
+    const client = new WirelessClient(recorder.device, (message) => lines.push(message));
+
+    await client.init();
+
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toContain('02 00 00');
   });
 
   it('sends the light, clock and settings under their own commands', async () => {
@@ -166,11 +180,12 @@ describe('WirelessClient', () => {
 
     expect(recorder.frames.map((frame) => frame[0])).toEqual([
       WIRELESS_COMMANDS.init,
+      WIRELESS_COMMANDS.heartbeat,
       WIRELESS_COMMANDS.light,
       WIRELESS_COMMANDS.clock,
       WIRELESS_COMMANDS.settings,
     ]);
-    expect(recorder.frames.slice(1).every((frame) => frame[1] === 16)).toBe(true);
+    expect(recorder.frames.slice(2).every((frame) => frame[1] === 16)).toBe(true);
   });
 
   it('fails clearly when the browser cannot send output reports', async () => {

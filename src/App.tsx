@@ -144,8 +144,9 @@ export function App() {
 
   // The receiver takes records over output reports and applies patches silently.
   const wireless = useMemo(
-    () => (device.device && device.link === 'wireless' ? new WirelessClient(device.device) : null),
-    [device.device, device.link],
+    () =>
+      device.device && device.link === 'wireless' ? new WirelessClient(device.device, log) : null,
+    [device.device, device.link, log],
   );
 
   const rows = getActiveRows(state);
