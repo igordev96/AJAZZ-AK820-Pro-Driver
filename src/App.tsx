@@ -653,13 +653,13 @@ export function App() {
       {banner ? (
         <div
           className={cn(
-            'border-b px-4 py-2 text-sm',
+            'border-b text-sm',
             banner.tone === 'error'
               ? 'border-rust/40 bg-rust/10 text-rust'
               : 'border-brass/40 bg-brass/10 text-brass',
           )}
         >
-          {banner.text}
+          <p className="mx-auto w-full max-w-page px-4 py-2">{banner.text}</p>
         </div>
       ) : null}
 
