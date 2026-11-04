@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { GitHubMark } from '@/components/github-mark';
 import { Button } from '@/components/ui/button';
 import type { LogLevel } from '@/lib/hid/transfer';
+import { notify } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { formatLog, type LogEntry } from './useLog';
 
@@ -32,11 +33,18 @@ export function LogPanel({ entries, open, onToggle, onClear }: LogPanelProps) {
   }, [entries, open]);
 
   const copy = async () => {
-    if (!navigator.clipboard || !entries.length) return;
+    if (!entries.length) return;
+
+    if (!navigator.clipboard) {
+      notify.err('This browser does not offer the clipboard here.');
+      return;
+    }
+
     try {
       await navigator.clipboard.writeText(formatLog(entries));
+      notify.ok(`Log copied, ${entries.length} ${entries.length === 1 ? 'line' : 'lines'}.`);
     } catch {
-      // Clipboard access can be denied; the log stays available on screen.
+      notify.err('The clipboard was refused. The log stays on screen.');
     }
   };
 
