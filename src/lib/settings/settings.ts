@@ -17,10 +17,18 @@ export type View = 'keys' | 'screen' | 'light' | 'device';
 
 export type ClockMode = 'now' | 'custom';
 
+export type DeviceLastSent = {
+  /** The values that were sent, so the panel can tell them from the draft. */
+  readonly values: DeviceSettings;
+  /** When the write succeeded, as a Unix timestamp in milliseconds. */
+  readonly at: number;
+};
+
 export type Settings = {
   readonly lighting: LightSettings;
   readonly clock: { readonly mode: ClockMode };
   readonly device: DeviceSettings;
+  readonly deviceLastSent: DeviceLastSent | null;
   readonly view: View;
 };
 
@@ -35,6 +43,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   clock: { mode: 'now' },
   device: DEFAULT_DEVICE_SETTINGS,
+  deviceLastSent: null,
   view: 'keys',
 };
 
@@ -74,6 +83,14 @@ function readLighting(raw: unknown): LightSettings {
 
 const sleepIndex = (value: unknown): SleepIndex =>
   value === 0 || value === 1 || value === 2 || value === 3 ? value : DEFAULT_DEVICE_SETTINGS.sleep;
+
+function readDeviceLastSent(raw: unknown): DeviceLastSent | null {
+  if (!isRecord(raw)) return null;
+  if (typeof raw.at !== 'number' || !Number.isFinite(raw.at) || raw.at <= 0) return null;
+  if (!isRecord(raw.values)) return null;
+
+  return { values: readDevice(raw.values), at: raw.at };
+}
 
 function readDevice(raw: unknown): DeviceSettings {
   const fallback = DEFAULT_DEVICE_SETTINGS;
@@ -115,6 +132,7 @@ export function readSettings(text: string | null): Settings {
     lighting: readLighting(raw.lighting),
     clock: { mode: clock === 'custom' ? 'custom' : 'now' },
     device: readDevice(raw.device),
+    deviceLastSent: readDeviceLastSent(raw.deviceLastSent),
     view: view === 'screen' || view === 'light' || view === 'device' ? view : 'keys',
   };
 }

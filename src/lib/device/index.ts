@@ -4,6 +4,7 @@ export {
   SETTINGS_RECORD_SIZE,
   SLEEP_OPTIONS,
   buildSettingsRecord,
+  sameDeviceSettings,
 } from './settings';
 export type { DeviceSettings, ResponseLevel, SleepIndex } from './settings';
 export { describeSettings } from './describe';

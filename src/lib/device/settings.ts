@@ -49,6 +49,17 @@ export const DEFAULT_DEVICE_SETTINGS: DeviceSettings = {
 
 const flag = (value: boolean) => (value ? 1 : 0);
 
+/** True when two sets of settings would produce the same record. */
+export function sameDeviceSettings(a: DeviceSettings, b: DeviceSettings): boolean {
+  return (
+    a.responseLevel === b.responseLevel &&
+    a.sleep === b.sleep &&
+    a.disableAltTab === b.disableAltTab &&
+    a.disableAltF4 === b.disableAltF4 &&
+    a.disableWindowsKey === b.disableWindowsKey
+  );
+}
+
 /**
  * The 64-byte settings record, from the captures of 2 Nov 2026:
  *

@@ -128,4 +128,31 @@ describe('DevicePanel', () => {
     expect(screen.getByRole('checkbox', { name: 'Windows key' })).toBeEnabled();
     expect(screen.getAllByText('USB only')).toHaveLength(2);
   });
+
+  it('says when nothing has been sent from this browser', () => {
+    renderPanel();
+
+    expect(screen.getByText('Not sent from this browser yet.')).toBeInTheDocument();
+  });
+
+  it('shows the last send when the draft still matches it', () => {
+    renderPanel({ lastSent: { values: DEFAULT_DEVICE_SETTINGS, at: Date.now() } });
+
+    expect(
+      screen.getByText(/Last sent .*forgets these when it is switched off/),
+    ).toBeInTheDocument();
+  });
+
+  it('marks a draft that moved since the last send', async () => {
+    const user = userEvent.setup();
+    renderPanel({
+      lastSent: { values: DEFAULT_DEVICE_SETTINGS, at: Date.now() },
+    });
+
+    await user.click(screen.getByRole('checkbox', { name: 'Windows key' }));
+
+    expect(
+      screen.getByText('Changed since the last send. Apply to send them again.'),
+    ).toBeInTheDocument();
+  });
 });

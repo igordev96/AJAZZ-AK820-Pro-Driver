@@ -10,7 +10,14 @@ import {
 import { StatusNote } from '@/components/status-note';
 import { UsbOnlyBadge } from '@/components/usb-only-badge';
 import { updateSettings, useSettings } from '@/features/settings/useSettings';
-import { RESPONSE_LEVELS, SLEEP_OPTIONS, type DeviceSettings, type SleepIndex } from '@/lib/device';
+import {
+  RESPONSE_LEVELS,
+  SLEEP_OPTIONS,
+  sameDeviceSettings,
+  type DeviceSettings,
+  type SleepIndex,
+} from '@/lib/device';
+import type { DeviceLastSent } from '@/lib/settings';
 import { cn } from '@/lib/utils';
 
 export type DeviceStatus =
@@ -25,9 +32,18 @@ export type DevicePanelProps = {
   onApply: (settings: DeviceSettings) => void;
   /** True when the page reached the keyboard through the 2.4 GHz receiver. */
   wireless?: boolean;
+  /** The last write this browser completed, if there is one. */
+  lastSent?: DeviceLastSent | null;
 };
 
 const flagRow = 'rounded-control border border-line bg-ink px-3 py-2.5';
+
+const sentTime = new Intl.DateTimeFormat(undefined, {
+  day: '2-digit',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+});
 
 export function DevicePanel({
   connected,
@@ -35,6 +51,7 @@ export function DevicePanel({
   status,
   onApply,
   wireless = false,
+  lastSent = null,
 }: DevicePanelProps) {
   // The draft lives in the settings store, next to the clock and the light, so
   // a reload shows the values that would be sent instead of the defaults.
@@ -42,6 +59,9 @@ export function DevicePanel({
   const change = (patch: Partial<DeviceSettings>) => {
     updateSettings({ device: { ...settings, ...patch } });
   };
+
+  const unchanged = lastSent ? sameDeviceSettings(settings, lastSent.values) : false;
+  const sentLabel = lastSent ? sentTime.format(new Date(lastSent.at)) : null;
 
   return (
     <>
@@ -200,6 +220,19 @@ export function DevicePanel({
               {busy ? 'Sending…' : 'Apply settings'}
             </Button>
           </div>
+
+          <p
+            className={cn(
+              'mt-2 text-[11px] leading-relaxed',
+              lastSent && !unchanged ? 'text-brass' : 'text-muted',
+            )}
+          >
+            {lastSent === null
+              ? 'Not sent from this browser yet.'
+              : unchanged
+                ? `Last sent ${sentLabel}. The board forgets these when it is switched off.`
+                : 'Changed since the last send. Apply to send them again.'}
+          </p>
 
           <div aria-live="polite">
             {status.kind === 'ok' ? (

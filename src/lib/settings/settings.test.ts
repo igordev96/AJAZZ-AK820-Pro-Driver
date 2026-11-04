@@ -27,6 +27,7 @@ describe('settings', () => {
         disableAltF4: false,
         disableWindowsKey: true,
       },
+      deviceLastSent: null,
       view: 'light' as const,
     };
 
@@ -81,6 +82,28 @@ describe('settings', () => {
     expect(settings.device.disableAltTab).toBe(false);
     expect(settings.device.disableAltF4).toBe(true);
     expect(settings.device.disableWindowsKey).toBe(false);
+  });
+
+  it('keeps a valid last-sent record and drops a broken one', () => {
+    const sent = readSettings(
+      stored({
+        deviceLastSent: {
+          at: 1_700_000_000_000,
+          values: { responseLevel: 3, sleep: 1, disableAltTab: true },
+        },
+      }),
+    );
+
+    expect(sent.deviceLastSent?.at).toBe(1_700_000_000_000);
+    expect(sent.deviceLastSent?.values.responseLevel).toBe(3);
+    expect(sent.deviceLastSent?.values.disableAltTab).toBe(true);
+    expect(sent.deviceLastSent?.values.disableWindowsKey).toBe(false);
+
+    expect(
+      readSettings(stored({ deviceLastSent: { at: 'late', values: {} } })).deviceLastSent,
+    ).toBe(null);
+    expect(readSettings(stored({ deviceLastSent: { at: 42 } })).deviceLastSent).toBe(null);
+    expect(readSettings(stored({ deviceLastSent: 'yesterday' })).deviceLastSent).toBe(null);
   });
 
   it('writes a version with the values', () => {

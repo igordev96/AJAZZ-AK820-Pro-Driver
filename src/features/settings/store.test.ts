@@ -31,6 +31,7 @@ const custom: Settings = {
     disableAltF4: false,
     disableWindowsKey: true,
   },
+  deviceLastSent: null,
   view: 'light',
 };
 
