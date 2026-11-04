@@ -187,7 +187,8 @@ The keyboard takes a snapshot, not a patch, so one write always sends all five v
 field left out is turned off rather than left alone.
 
 There is no read-back for any of them either. The page shows what it is about to send, never what
-the board currently holds.
+the board currently holds. It does remember the values you last chose, so a reload brings them back
+ready to send; that is this browser's memory, not the keyboard's.
 
 The board keeps none of the five through a power cycle. Tests 21, 22 and 24 switched the keyboard off
 over the 2.4 GHz link, pulled the USB cable, and applied the blocks one at a time; every value came
@@ -213,10 +214,10 @@ clear site data, and they do not travel to another browser or machine.
 
 ## What this browser remembers
 
-The view you were on, the clock source and the light settings are stored under `ak820.settings`,
-so a reload returns you to the same place with the same light. They are read back field by field:
-a value that stops making sense, such as an effect that no longer exists, falls back to its
-default instead of breaking the page.
+The view you were on, the clock source, the light settings and the device settings you last chose
+are stored under `ak820.settings`, so a reload returns you to the same place with the same values
+ready to send. They are read back field by field: a value that stops making sense, such as an effect
+that no longer exists, falls back to its default instead of breaking the page.
 
 Both keymap layers are stored together under `ak820.layers`, each in two parts: the draft you were
 editing and the table the last confirmed upload sent. A reload shows your drafts on the top layer

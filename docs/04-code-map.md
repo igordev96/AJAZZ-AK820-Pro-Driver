@@ -40,12 +40,12 @@ src/test/                Vitest setup, fake HID device and fake clock
 not import React or touch the DOM except through the `WebHidDevice` shape the caller supplies.
 `src/lib/editor` is also React-free: plain state, a reducer and storage.
 
-`src/lib/settings` validates and serialises what the page remembers; `src/features/settings`
-keeps that in a module store and exposes it through `useSyncExternalStore`. Panels read and
-write their slice, so unmounting one no longer drops its values. The store holds the values in
-memory and writes to `localStorage` after a 200 ms pause, flushed on `pagehide`. Pending
-top-layer edits and the log stay out on purpose: a saved table would look applied, and a saved
-log would describe traffic from another session.
+`src/lib/settings` validates and serialises what the page remembers, including the device settings
+draft; `src/features/settings` keeps that in a module store and exposes it through
+`useSyncExternalStore`. Panels read and write their slice, so unmounting one no longer drops its
+values. The store holds the values in memory and writes to `localStorage` after a 200 ms pause,
+flushed on `pagehide`. Pending top-layer edits and the log stay out on purpose: a saved table would
+look applied, and a saved log would describe traffic from another session.
 
 React components render and dispatch. They never call `navigator.hid`. `useDevice` owns the
 chooser, open and close, and the disconnect listener. Uploads on the wired link go through
@@ -230,9 +230,10 @@ reports one, and a mode that cycles through colours never promises the picker's 
 The **Device** view is two columns. The left one is the vendor's response-time table, all three
 links, with the selected level in ivory so the numbers can be compared before choosing. The right
 one holds the two selects and the three checkboxes, and one Apply writes them together, because the
-record is a snapshot. On the 2.4 GHz link the Alt+F4 and Alt+Tab rows are disabled and badged, since
-the receiver ignores those two flags. `src/lib/device` holds the record, the option lists and the
-wording, and `docs/01-protocol.md` §12 holds the captured layout.
+record is a snapshot. The values live in the settings store, so a reload shows the last choices
+rather than the defaults. On the 2.4 GHz link the Alt+F4 and Alt+Tab rows are disabled and badged,
+since the receiver ignores those two flags. `src/lib/device` holds the record, the option lists and
+the wording, and `docs/01-protocol.md` §12 holds the captured layout.
 
 `AdvancedDrawer` is a `Sheet`: a Radix dialog that slides in from the right, traps focus, locks the
 page scroll and returns focus to the Advanced button on close. Escape and a click on the overlay

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -10,13 +9,8 @@ import {
 } from '@/components/ui/select';
 import { StatusNote } from '@/components/status-note';
 import { UsbOnlyBadge } from '@/components/usb-only-badge';
-import {
-  DEFAULT_DEVICE_SETTINGS,
-  RESPONSE_LEVELS,
-  SLEEP_OPTIONS,
-  type DeviceSettings,
-  type SleepIndex,
-} from '@/lib/device';
+import { updateSettings, useSettings } from '@/features/settings/useSettings';
+import { RESPONSE_LEVELS, SLEEP_OPTIONS, type DeviceSettings, type SleepIndex } from '@/lib/device';
 import { cn } from '@/lib/utils';
 
 export type DeviceStatus =
@@ -42,9 +36,11 @@ export function DevicePanel({
   onApply,
   wireless = false,
 }: DevicePanelProps) {
-  const [settings, setSettings] = useState<DeviceSettings>(DEFAULT_DEVICE_SETTINGS);
+  // The draft lives in the settings store, next to the clock and the light, so
+  // a reload shows the values that would be sent instead of the defaults.
+  const settings = useSettings((stored) => stored.device);
   const change = (patch: Partial<DeviceSettings>) => {
-    setSettings((current) => ({ ...current, ...patch }));
+    updateSettings({ device: { ...settings, ...patch } });
   };
 
   return (

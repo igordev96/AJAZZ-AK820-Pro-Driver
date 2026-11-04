@@ -89,7 +89,8 @@ keyboard. The production build runs `tsc --noEmit` first, so a type error fails 
   and tagged `USB only` on that link.
 - The five device settings are runtime state. The board resets them at power-on on both links, so
   the page asks for another write after a power-off. Over 2.4 GHz the Alt+F4 and Alt+Tab blocks do
-  nothing, and the vendor app does no better, so they stay disabled there.
+  nothing, and the vendor app does no better, so they stay disabled there. The panel's draft is
+  remembered with the view and light settings; that is browser memory, not board state.
 - The 576-byte table, `AA 55` at 574-575, `idx <= 142`, the begin/announce/commit order, the
   220 ms settle and the 60 ms poll do not change.
 - On the Fn layer, zero means firmware default. Never seed it with factory keys.

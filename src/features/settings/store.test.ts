@@ -24,6 +24,13 @@ const memoryStorage = (seed?: string) => {
 const custom: Settings = {
   lighting: { mode: 10, color: '#00ff00', brightness: 2, speed: 4, colorful: true, direction: 3 },
   clock: { mode: 'custom' },
+  device: {
+    responseLevel: 4,
+    sleep: 1,
+    disableAltTab: true,
+    disableAltF4: false,
+    disableWindowsKey: true,
+  },
   view: 'light',
 };
 

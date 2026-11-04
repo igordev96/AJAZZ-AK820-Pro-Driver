@@ -108,4 +108,24 @@ describe('DevicePanel', () => {
 
     expect(screen.getByText(/could not be sent/)).toBeInTheDocument();
   });
+
+  it('keeps the chosen values after a remount', async () => {
+    const user = userEvent.setup();
+    const first = renderPanel();
+    await user.click(screen.getByRole('checkbox', { name: 'Windows key' }));
+    first.unmount();
+
+    renderPanel();
+
+    expect(screen.getByRole('checkbox', { name: 'Windows key' })).toBeChecked();
+  });
+
+  it('disables the two blocks the receiver ignores', () => {
+    renderPanel({ wireless: true });
+
+    expect(screen.getByRole('checkbox', { name: 'Alt + F4' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Alt + Tab' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Windows key' })).toBeEnabled();
+    expect(screen.getAllByText('USB only')).toHaveLength(2);
+  });
 });

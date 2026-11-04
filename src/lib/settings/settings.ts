@@ -1,3 +1,5 @@
+import type { DeviceSettings, SleepIndex } from '../device';
+import { DEFAULT_DEVICE_SETTINGS } from '../device';
 import type { LightSettings } from '../lighting/describe';
 import {
   LIGHT_MAX_BRIGHTNESS,
@@ -18,6 +20,7 @@ export type ClockMode = 'now' | 'custom';
 export type Settings = {
   readonly lighting: LightSettings;
   readonly clock: { readonly mode: ClockMode };
+  readonly device: DeviceSettings;
   readonly view: View;
 };
 
@@ -31,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
     direction: 0,
   },
   clock: { mode: 'now' },
+  device: DEFAULT_DEVICE_SETTINGS,
   view: 'keys',
 };
 
@@ -68,6 +72,26 @@ function readLighting(raw: unknown): LightSettings {
   };
 }
 
+const sleepIndex = (value: unknown): SleepIndex =>
+  value === 0 || value === 1 || value === 2 || value === 3 ? value : DEFAULT_DEVICE_SETTINGS.sleep;
+
+function readDevice(raw: unknown): DeviceSettings {
+  const fallback = DEFAULT_DEVICE_SETTINGS;
+  if (!isRecord(raw)) return fallback;
+
+  return {
+    responseLevel: whole(raw.responseLevel, 1, 5, fallback.responseLevel),
+    sleep: sleepIndex(raw.sleep),
+    disableAltTab:
+      typeof raw.disableAltTab === 'boolean' ? raw.disableAltTab : fallback.disableAltTab,
+    disableAltF4: typeof raw.disableAltF4 === 'boolean' ? raw.disableAltF4 : fallback.disableAltF4,
+    disableWindowsKey:
+      typeof raw.disableWindowsKey === 'boolean'
+        ? raw.disableWindowsKey
+        : fallback.disableWindowsKey,
+  };
+}
+
 /**
  * Reads the stored settings. Every field is validated on its own, so one bad
  * value costs only that value; unreadable JSON falls back to the defaults.
@@ -90,6 +114,7 @@ export function readSettings(text: string | null): Settings {
   return {
     lighting: readLighting(raw.lighting),
     clock: { mode: clock === 'custom' ? 'custom' : 'now' },
+    device: readDevice(raw.device),
     view: view === 'screen' || view === 'light' || view === 'device' ? view : 'keys',
   };
 }

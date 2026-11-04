@@ -20,6 +20,13 @@ describe('settings', () => {
         direction: 3,
       },
       clock: { mode: 'custom' as const },
+      device: {
+        responseLevel: 4,
+        sleep: 1 as const,
+        disableAltTab: true,
+        disableAltF4: false,
+        disableWindowsKey: true,
+      },
       view: 'light' as const,
     };
 
@@ -54,6 +61,26 @@ describe('settings', () => {
     expect(readSettings(stored({ view: 'screen' })).view).toBe('screen');
     expect(readSettings(stored({ clock: { mode: 'later' } })).clock.mode).toBe('now');
     expect(readSettings(stored({ clock: { mode: 'custom' } })).clock.mode).toBe('custom');
+  });
+
+  it('validates the device settings field by field', () => {
+    const settings = readSettings(
+      stored({
+        device: {
+          responseLevel: 9,
+          sleep: 7,
+          disableAltTab: 'yes',
+          disableAltF4: true,
+          disableWindowsKey: false,
+        },
+      }),
+    );
+
+    expect(settings.device.responseLevel).toBe(DEFAULT_SETTINGS.device.responseLevel);
+    expect(settings.device.sleep).toBe(DEFAULT_SETTINGS.device.sleep);
+    expect(settings.device.disableAltTab).toBe(false);
+    expect(settings.device.disableAltF4).toBe(true);
+    expect(settings.device.disableWindowsKey).toBe(false);
   });
 
   it('writes a version with the values', () => {
