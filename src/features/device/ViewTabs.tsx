@@ -21,10 +21,16 @@ const views = [
 type ViewTabsProps = {
   view: View;
   disabled: boolean;
+  /** True over the 2.4 GHz receiver, where the screen has no channel. */
+  wireless?: boolean;
 };
 
-export function ViewTabs({ view, disabled }: ViewTabsProps) {
+export function ViewTabs({ view, disabled, wireless = false }: ViewTabsProps) {
   const active = views.find((item) => item.id === view) ?? views[0];
+  const items = views.map((item) => ({
+    ...item,
+    badge: wireless && item.id === 'screen',
+  }));
 
-  return <TabRow label="View" items={views} note={active.note} disabled={disabled} />;
+  return <TabRow label="View" items={items} note={active.note} disabled={disabled} />;
 }

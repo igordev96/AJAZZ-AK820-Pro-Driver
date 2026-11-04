@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { Toaster } from '@/components/ui/sonner';
 import { AppHeader } from '@/features/device/AppHeader';
 import { ViewTabs, type View } from '@/features/device/ViewTabs';
 import { updateSettings, useSettings } from '@/features/settings/useSettings';
@@ -37,6 +38,7 @@ import {
   validateUsage,
   type EditorRow,
   type EditorState,
+  type FnOverride,
   type Layer,
   type StorageLike,
 } from '@/lib/editor';
@@ -48,6 +50,9 @@ import { FN_LOCKED, buildTable } from '@/lib/keymap';
 import { buildLightRecord, describeLight } from '@/lib/lighting';
 import { buildAnimationPayload } from '@/lib/screen';
 import { buildSettingsRecord, describeSettings, type DeviceSettings } from '@/lib/device';
+import { downloadText, profileFileName } from '@/lib/download';
+import { buildProfile, type ParsedProfile } from '@/lib/profile';
+import { notify } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
 // The three view panels and the drawer load on demand. A visitor who only remaps
@@ -127,6 +132,8 @@ export function App() {
   const [advancedMounted, setAdvancedMounted] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
   const view = useSettings((settings) => settings.view);
+  const deviceLastSent = useSettings((settings) => settings.deviceLastSent);
+  const settings = useSettings((stored) => stored);
   const [timeStatus, setTimeStatus] = useState<TimeStatus>({ kind: 'idle' });
   const [lightingStatus, setLightingStatus] = useState<LightingStatus>({ kind: 'idle' });
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatus>({ kind: 'idle' });
@@ -161,6 +168,7 @@ export function App() {
     async (rowsToSend: readonly EditorRow[], layer: Layer, afterState: EditorState) => {
       if (!transfer && !wireless) {
         log('Connect the keyboard first.', 'warn');
+        notify.warn('Connect the keyboard first.');
         return false;
       }
       if (busyRef.current) return false;
@@ -187,6 +195,9 @@ export function App() {
             `Sent ${sent} key change${sent === 1 ? '' : 's'} over 2.4 GHz. The keyboard does not confirm them.`,
             'ok',
           );
+          notify.warn(
+            `${sent} key change${sent === 1 ? '' : 's'} sent over 2.4 GHz. The keyboard does not confirm it.`,
+          );
           return true;
         }
 
@@ -196,11 +207,13 @@ export function App() {
 
         if (result.busy) {
           log('A transfer is already running.', 'warn');
+          notify.warn('A transfer is already running.');
           return false;
         }
 
         if (isTransportFailed(result.steps)) {
           log('The keyboard refused the transfer. Nothing was written.', 'err');
+          notify.err('The keyboard refused the transfer. Nothing was written.');
           return false;
         }
 
@@ -212,6 +225,7 @@ export function App() {
           dispatch({ type: 'replace', state: afterState });
 
           log(`Upload accepted. The ${layer === 'fn' ? 'Fn layer' : 'top layer'} is live.`, 'ok');
+          notify.ok(`Upload accepted. The ${layer === 'fn' ? 'Fn layer' : 'top layer'} is live.`);
           return true;
         }
 
@@ -219,9 +233,11 @@ export function App() {
           `Upload rejected (${status === null ? 'no reply' : `0x${hex([status])}`}). Nothing was applied.`,
           'err',
         );
+        notify.err('Upload rejected. Nothing was applied.');
         return false;
       } catch (error) {
         log(`Upload failed: ${error instanceof Error ? error.message : String(error)}`, 'err');
+        notify.err('The upload failed. Nothing was written.');
         return false;
       } finally {
         busyRef.current = false;
@@ -287,6 +303,7 @@ export function App() {
     async (at: Date) => {
       if (!transfer && !wireless) {
         log('Connect the keyboard first.', 'warn');
+        notify.warn('Connect the keyboard first.');
         return;
       }
       if (busyRef.current) return;
@@ -300,6 +317,7 @@ export function App() {
           await wireless.sendClock(buildTimePacket(at));
           setTimeStatus({ kind: 'ok', at });
           log(`Time sent. The screen clock is set to ${formatClock(at)}.`, 'ok');
+          notify.ok(`Time sent. The screen clock is set to ${formatClock(at)}.`);
           return;
         }
 
@@ -308,6 +326,7 @@ export function App() {
 
         if (result.busy) {
           log('A transfer is already running.', 'warn');
+          notify.warn('A transfer is already running.');
           return;
         }
 
@@ -317,6 +336,7 @@ export function App() {
             message: 'The keyboard refused the time. Nothing changed.',
           });
           log('The keyboard refused the time. Nothing changed.', 'err');
+          notify.err('The keyboard refused the time. Nothing changed.');
           return;
         }
 
@@ -326,6 +346,7 @@ export function App() {
         if (status === STATUS.ok) {
           setTimeStatus({ kind: 'ok', at });
           log(`Time sent. The screen clock is set to ${formatClock(at)}.`, 'ok');
+          notify.ok(`Time sent. The screen clock is set to ${formatClock(at)}.`);
           return;
         }
 
@@ -340,10 +361,16 @@ export function App() {
           `Time rejected (${status === null ? 'no reply' : `0x${hex([status])}`}). Nothing changed.`,
           'err',
         );
+        notify.err(
+          status === null
+            ? 'No reply from the keyboard. Nothing changed.'
+            : 'The keyboard refused the time. Nothing changed.',
+        );
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         setTimeStatus({ kind: 'err', message: 'The time could not be sent. Nothing changed.' });
         log(`Time failed: ${message}`, 'err');
+        notify.err('The time could not be sent. Nothing changed.');
       } finally {
         busyRef.current = false;
         setBusy(false);
@@ -356,6 +383,7 @@ export function App() {
     async (frames: Uint8Array[], delays: number[]) => {
       if (!transfer) {
         log('Connect the keyboard first.', 'warn');
+        notify.warn('Connect the keyboard first.');
         return;
       }
       if (busyRef.current) return;
@@ -379,6 +407,7 @@ export function App() {
 
         if (result.busy) {
           log('A transfer is already running.', 'warn');
+          notify.warn('A transfer is already running.');
           return;
         }
 
@@ -389,6 +418,7 @@ export function App() {
             message: `The upload stopped after ${done} of ${frames.length} frames. Unplug and replug the keyboard if it stops responding, then send the animation again.`,
           });
           log('The screen upload stopped early. The commit was not sent.', 'err');
+          notify.err(`The upload stopped after ${done} of ${frames.length} frames.`);
           return;
         }
 
@@ -398,6 +428,7 @@ export function App() {
         if (status === STATUS.ok) {
           setAnimationStatus({ kind: 'ok', message: 'Sent. The screen is playing the animation.' });
           log(`Screen animation sent (${frames.length} frames).`, 'ok');
+          notify.ok(`Animation sent, ${frames.length} frames.`);
           return;
         }
 
@@ -412,6 +443,7 @@ export function App() {
           }). The screen may hold a mix of old and new frames.`,
           'err',
         );
+        notify.err('The keyboard refused the animation. The screen may hold a mix of frames.');
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         setAnimationStatus({
@@ -420,6 +452,7 @@ export function App() {
             'The upload stopped unexpectedly. If the keyboard stops responding, unplug and replug it, then send the animation again.',
         });
         log(`Screen upload failed: ${message}`, 'err');
+        notify.err('The animation could not be sent.');
       } finally {
         setAnimationSending(false);
         setAnimationProgress(null);
@@ -435,6 +468,7 @@ export function App() {
       const { mode, color, brightness, speed, colorful, direction } = values;
       if (!transfer && !wireless) {
         log('Connect the keyboard first.', 'warn');
+        notify.warn('Connect the keyboard first.');
         return;
       }
       if (busyRef.current) return;
@@ -460,6 +494,7 @@ export function App() {
           const { message, log: line } = describeLight(values);
           setLightingStatus({ kind: 'ok', message });
           log(line, 'ok');
+          notify.ok(message);
           return;
         }
 
@@ -468,6 +503,7 @@ export function App() {
 
         if (result.busy) {
           log('A transfer is already running.', 'warn');
+          notify.warn('A transfer is already running.');
           return;
         }
 
@@ -477,6 +513,7 @@ export function App() {
             message: 'The light may not have been sent. Check the keyboard before trying again.',
           });
           log('The light transfer stopped early. Check the keyboard.', 'err');
+          notify.err('The light may not have been sent. Check the keyboard.');
           return;
         }
 
@@ -487,6 +524,7 @@ export function App() {
           const { message, log: line } = describeLight(values);
           setLightingStatus({ kind: 'ok', message });
           log(line, 'ok');
+          notify.ok(message);
           return;
         }
 
@@ -499,6 +537,7 @@ export function App() {
           `Light not confirmed (${status === null ? 'no reply' : `0x${hex([status])}`}). It may still have applied.`,
           'err',
         );
+        notify.warn('The keyboard did not confirm the light. Check it before trying again.');
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         setLightingStatus({
@@ -506,6 +545,7 @@ export function App() {
           message: 'The light could not be sent. Nothing changed.',
         });
         log(`Light failed: ${message}`, 'err');
+        notify.err('The light could not be sent.');
       } finally {
         busyRef.current = false;
         setBusy(false);
@@ -518,6 +558,7 @@ export function App() {
     async (values: DeviceSettings) => {
       if (!transfer && !wireless) {
         log('Connect the keyboard first.', 'warn');
+        notify.warn('Connect the keyboard first.');
         return;
       }
       if (busyRef.current) return;
@@ -534,6 +575,8 @@ export function App() {
           const { message, log: line } = describeSettings(values);
           setDeviceStatus({ kind: 'ok', message });
           log(line, 'ok');
+          notify.ok(message);
+          updateSettings({ deviceLastSent: { values, at: Date.now() } });
           return;
         }
 
@@ -542,6 +585,7 @@ export function App() {
 
         if (result.busy) {
           log('A transfer is already running.', 'warn');
+          notify.warn('A transfer is already running.');
           return;
         }
 
@@ -552,6 +596,7 @@ export function App() {
               'The settings may not have been sent. Check the shortcuts before trying again.',
           });
           log('The settings transfer stopped early. Check the keyboard.', 'err');
+          notify.err('The settings may not have been sent. Check the shortcuts.');
           return;
         }
 
@@ -562,6 +607,8 @@ export function App() {
           const { message, log: line } = describeSettings(values);
           setDeviceStatus({ kind: 'ok', message });
           log(line, 'ok');
+          notify.ok(message);
+          updateSettings({ deviceLastSent: { values, at: Date.now() } });
           return;
         }
 
@@ -574,6 +621,7 @@ export function App() {
           `Device settings not confirmed (${status === null ? 'no reply' : `0x${hex([status])}`}). They may still have applied.`,
           'err',
         );
+        notify.warn('The keyboard did not confirm the settings. Check the shortcuts.');
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         setDeviceStatus({
@@ -581,6 +629,7 @@ export function App() {
           message: 'The settings could not be sent. Nothing changed.',
         });
         log(`Settings failed: ${message}`, 'err');
+        notify.err('The settings could not be sent.');
       } finally {
         busyRef.current = false;
         setBusy(false);
@@ -602,16 +651,63 @@ export function App() {
     setBusy(value);
   }, []);
 
-  const handleConnect = useCallback(() => {
-    void device.connect();
+  const handleConnect = useCallback(async () => {
+    const outcome = await device.connect();
+
+    if (outcome.status === 'connected') {
+      if (outcome.link === 'wireless') {
+        notify.ok(`${outcome.name} connected over 2.4 GHz.`);
+      } else if (outcome.link === 'usb') {
+        notify.ok(`${outcome.name} connected over USB.`);
+      } else {
+        notify.warn('The device opened, but neither interface was found.');
+      }
+    } else if (outcome.status === 'cancelled') {
+      notify.info('No keyboard selected.');
+    } else {
+      notify.err(outcome.message);
+    }
+
     // The drawer is only reachable while connected, so warm its chunk now and
     // the first click opens it without a fetch.
     void import('@/features/advanced/AdvancedDrawer').catch(() => {});
   }, [device]);
 
-  const handleDisconnect = useCallback(() => {
-    void device.disconnect();
+  const handleDisconnect = useCallback(async () => {
+    await device.disconnect();
+    notify.info('Disconnected.');
   }, [device]);
+
+  const handleExportProfile = useCallback(() => {
+    const at = new Date();
+    downloadText(profileFileName(at), buildProfile(state, settings, at));
+    notify.ok('Profile exported.');
+  }, [settings, state]);
+
+  const handleImportProfile = useCallback(
+    (profile: ParsedProfile) => {
+      if (busyRef.current) {
+        notify.warn('Finish the current transfer first.');
+        return;
+      }
+
+      const next = createInitialState({
+        top: { draft: profile.top, applied: new Map<number, FnOverride>() },
+        fn: { draft: profile.fn, applied: new Map<number, FnOverride>() },
+      });
+
+      dispatch({ type: 'replace', state: { ...next, layer: state.layer, selected: null } });
+      updateSettings({
+        device: profile.device,
+        lighting: profile.lighting,
+        clock: { mode: profile.clockMode },
+      });
+
+      const keys = profile.top.size + profile.fn.size;
+      notify.ok(`Profile loaded: ${keys} key${keys === 1 ? '' : 's'} pending. Nothing sent.`);
+    },
+    [state.layer],
+  );
 
   // A connected link is not a problem, so only the failures take the error
   // styling. The 2.4 GHz note is neutral, and the screen caveat lives on the
@@ -647,6 +743,9 @@ export function App() {
         onDisconnect={handleDisconnect}
         onAdvanced={handleOpenAdvanced}
         advancedDisabled={!connected || busy}
+        profileDisabled={busy}
+        onExportProfile={handleExportProfile}
+        onImportProfile={handleImportProfile}
         onToggleLog={() => setLogOpen((open) => !open)}
       />
 
@@ -665,7 +764,7 @@ export function App() {
 
       <main className="mx-auto w-full max-w-page flex-1 px-4 py-6">
         <Tabs value={view} onValueChange={(next) => updateSettings({ view: next as View })}>
-          <ViewTabs view={view} disabled={busy} />
+          <ViewTabs view={view} disabled={busy} wireless={device.link === 'wireless'} />
 
           <TabsContent value="keys">
             <div className="mt-5 grid content-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -759,6 +858,7 @@ export function App() {
                   busy={busy}
                   status={deviceStatus}
                   wireless={device.link === 'wireless'}
+                  lastSent={deviceLastSent}
                   onApply={handleApplySettings}
                 />
               </div>
@@ -785,6 +885,8 @@ export function App() {
           />
         </Suspense>
       ) : null}
+
+      <Toaster />
     </div>
   );
 }

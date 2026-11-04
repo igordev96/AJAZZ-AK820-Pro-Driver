@@ -1,5 +1,6 @@
 import { Settings2, Terminal, Unplug, Usb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ProfileMenu, type ProfileMenuProps } from '@/features/profile/ProfileMenu';
 import { cn } from '@/lib/utils';
 import type { DeviceState } from './useDevice';
 
@@ -13,6 +14,9 @@ type AppHeaderProps = {
   onAdvanced: () => void;
   advancedDisabled: boolean;
   onToggleLog: () => void;
+  profileDisabled: boolean;
+  onExportProfile: ProfileMenuProps['onExport'];
+  onImportProfile: ProfileMenuProps['onImport'];
 };
 
 const hex = (value: number) => value.toString(16).toUpperCase().padStart(4, '0');
@@ -27,6 +31,9 @@ export function AppHeader({
   onAdvanced,
   advancedDisabled,
   onToggleLog,
+  profileDisabled,
+  onExportProfile,
+  onImportProfile,
 }: AppHeaderProps) {
   const connected = device.status === 'connected';
   const label =
@@ -91,6 +98,12 @@ export function AppHeader({
               {device.status === 'connecting' ? 'Connecting…' : 'Connect keyboard'}
             </Button>
           )}
+
+          <ProfileMenu
+            disabled={profileDisabled}
+            onExport={onExportProfile}
+            onImport={onImportProfile}
+          />
 
           <Button
             variant="ghost"

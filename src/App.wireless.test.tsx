@@ -99,7 +99,9 @@ describe('App over the 2.4 GHz receiver', () => {
 
     await user.click(screen.getByRole('checkbox', { name: 'Windows key' }));
     await user.click(screen.getByRole('button', { name: 'Apply settings' }));
-    await screen.findByText(/the Windows key blocked/);
+    // The inline status and the toast both confirm the write.
+    expect(await screen.findAllByText(/the Windows key blocked/)).not.toHaveLength(0);
+    expect(await screen.findByText(/Last sent/i)).toBeInTheDocument();
 
     // init, heartbeat, then 00 01 <altTab> <altF4> <win> 00 <sleep> 00 <level>.
     const frame = frames[2];
@@ -116,12 +118,14 @@ describe('App over the 2.4 GHz receiver', () => {
     render(<App />);
     await connect(user);
 
-    await user.click(screen.getByRole('tab', { name: 'Screen' }));
+    await user.click(screen.getByRole('tab', { name: /screen/i }));
 
     expect(await screen.findByText('USB only')).toBeInTheDocument();
     expect(screen.getByText(/has no screen channel/i)).toBeInTheDocument();
     expect(screen.getByLabelText('Choose a file')).toBeDisabled();
     expect(screen.getByRole('button', { name: /send animation/i })).toBeDisabled();
+    // The tab says it before the click.
+    expect(screen.getByRole('tab', { name: 'Screen (USB only)' })).toBeInTheDocument();
   });
 
   it('keeps key changes pending when the receiver is not connected', async () => {

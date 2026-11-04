@@ -24,6 +24,12 @@ export type DeviceStatus = 'idle' | 'connecting' | 'connected' | 'error';
 /** How the keyboard is reached: the wired configuration interface or the receiver. */
 export type DeviceLink = 'usb' | 'wireless';
 
+/** What the chooser and the open ended in, so the caller can confirm it once. */
+export type ConnectOutcome =
+  | { readonly status: 'connected'; readonly name: string; readonly link: DeviceLink | null }
+  | { readonly status: 'cancelled' }
+  | { readonly status: 'error'; readonly message: string };
+
 export type DeviceState = {
   readonly status: DeviceStatus;
   readonly device: WebHidDevice | null;
@@ -56,13 +62,13 @@ export function useDevice({ hid, log }: { hid?: WebHid; log?: LogFn } = {}) {
   const available = hid ?? getWebHid();
   const [state, setState] = useState<DeviceState>(initialState);
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (): Promise<ConnectOutcome> => {
     if (!available) {
       const message =
         'WebHID is not available in this browser. Use Chrome, Edge or Opera on desktop.';
       setState({ ...initialState, status: 'error', error: message });
       log?.(message, 'err');
-      return;
+      return { status: 'error', message };
     }
 
     setState({ ...initialState, status: 'connecting' });
@@ -79,7 +85,7 @@ export function useDevice({ hid, log }: { hid?: WebHid; log?: LogFn } = {}) {
       if (!device) {
         setState(initialState);
         log?.('no device selected', 'warn');
-        return;
+        return { status: 'cancelled' };
       }
 
       log?.(`interfaces returned: ${devices.length}`, 'dim');
@@ -161,10 +167,13 @@ export function useDevice({ hid, log }: { hid?: WebHid; log?: LogFn } = {}) {
       if (!screenFound && link !== 'wireless') {
         log?.('screen interface 0xFF68/0x0061 not found. The image card stays disabled.', 'warn');
       }
+
+      return { status: 'connected', name: device.productName ?? 'AK820', link };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       setState({ ...initialState, status: 'error', error: message });
       log?.(`connection failed: ${message}`, 'err');
+      return { status: 'error', message };
     }
   }, [available, log]);
 
