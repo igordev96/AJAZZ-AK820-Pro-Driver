@@ -55,7 +55,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** Reads `[idx, usage]` or `[idx, usage, 1]` rows, dropping anything unusable. */
-function readRows(raw: unknown): Map<number, FnOverride> {
+export function parseRows(raw: unknown): Map<number, FnOverride> {
   const overrides = new Map<number, FnOverride>();
   if (!Array.isArray(raw)) return overrides;
 
@@ -80,7 +80,7 @@ function readRows(raw: unknown): Map<number, FnOverride> {
 
 function readLayer(raw: unknown): LayerRows {
   if (!isRecord(raw)) return emptyLayer();
-  return { draft: readRows(raw.draft), applied: readRows(raw.applied) };
+  return { draft: parseRows(raw.draft), applied: parseRows(raw.applied) };
 }
 
 /**
@@ -90,7 +90,7 @@ function readLayer(raw: unknown): LayerRows {
  * table.
  */
 function readLegacy(storage: StorageLike): StoredLayers {
-  const fnRows = readRows(parse(safeRead(storage, FN_STORE)));
+  const fnRows = parseRows(parse(safeRead(storage, FN_STORE)));
   const top = parse(safeRead(storage, TOP_STORE));
   const topLayer = isRecord(top) ? readLayer(top) : emptyLayer();
 
@@ -110,7 +110,11 @@ export function loadLayers(storage: StorageLike): StoredLayers {
   return readLegacy(storage);
 }
 
-function rowsOf(rows: readonly EditorRow[]) {
+/**
+ * The draft and applied halves of one layer in the stored
+ * `[idx, usage]` / `[idx, usage, 1]` shape, which a profile reuses.
+ */
+export function serializeLayer(rows: readonly EditorRow[]) {
   const draft = rows
     .filter((row) => row.usage !== row.factory || row.media !== row.factoryMedia)
     .map((row) => (row.media ? [row.idx, row.usage, 1] : [row.idx, row.usage]));
@@ -127,8 +131,8 @@ function rowsOf(rows: readonly EditorRow[]) {
  * mark has to survive a reload to stay honest.
  */
 export function saveLayers(storage: StorageLike, state: Pick<EditorState, 'top' | 'fn'>): void {
-  const top = rowsOf(state.top);
-  const fn = rowsOf(state.fn);
+  const top = serializeLayer(state.top);
+  const fn = serializeLayer(state.fn);
   const empty = !top.draft.length && !top.applied.length && !fn.draft.length && !fn.applied.length;
 
   if (empty) storage.removeItem(LAYERS_STORE);

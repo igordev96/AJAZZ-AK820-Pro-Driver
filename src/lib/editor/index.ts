@@ -4,7 +4,9 @@ export {
   TOP_STORE,
   EMPTY_LAYERS,
   loadLayers,
+  parseRows,
   saveLayers,
+  serializeLayer,
 } from './persistence';
 export type { LayerRows, StorageLike, StoredLayers } from './persistence';
 export { pendingKeyPatches } from './patches';
