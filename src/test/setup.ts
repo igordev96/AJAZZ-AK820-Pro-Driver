@@ -23,6 +23,27 @@ Object.defineProperties(Element.prototype, {
   scrollIntoView: { value: () => {}, configurable: true },
 });
 
+// Sonner reads matchMedia to pick its animation and layout.
+Object.defineProperty(window, 'matchMedia', {
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  }),
+  configurable: true,
+});
+
+// Clipboard access is permission-based in browsers; tests stub it per case.
+Object.defineProperty(navigator, 'clipboard', {
+  value: { writeText: async () => {} },
+  configurable: true,
+});
+
 Object.defineProperty(navigator, 'hid', {
   value: undefined,
   configurable: true,
