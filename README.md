@@ -204,6 +204,19 @@ implement them there. The page disables those two over the receiver and sends th
 **Advanced** opens the diagnostics, the deep probe, the mailbox probe and a raw command tab.
 These send test commands and never write a keymap. Uploads are locked while one of them runs.
 
+### Profiles
+
+**Profile** in the header exports one JSON file with both key layers, the device settings and the
+lighting, so another machine can start from the same drafts. Import lists what the file holds and
+asks before replacing anything.
+
+An import touches this page only. Every imported key shows as pending until you upload it, and the
+device and lighting values wait for their own buttons, so a profile from another machine cannot
+quietly rewrite this keyboard.
+
+The file carries drafts, never a claim that a keyboard already has them. The screen animation is not
+included: this tool cannot read the screen back, and it does not keep the frames after sending.
+
 ## The missing read-back
 
 If you remapped keys in the vendor app, this app cannot see that layout. Uploading the factory map
@@ -214,10 +227,11 @@ clear site data, and they do not travel to another browser or machine.
 
 ## What this browser remembers
 
-The view you were on, the clock source, the light settings and the device settings you last chose
-are stored under `ak820.settings`, so a reload returns you to the same place with the same values
-ready to send. They are read back field by field: a value that stops making sense, such as an effect
-that no longer exists, falls back to its default instead of breaking the page.
+The view you were on, the clock source, the light settings, the device settings you last chose and
+when those were last sent are stored under `ak820.settings`, so a reload returns you to the same
+place with the same values ready to send. They are read back field by field: a value that stops
+making sense, such as an effect that no longer exists, falls back to its default instead of breaking
+the page.
 
 Both keymap layers are stored together under `ak820.layers`, each in two parts: the draft you were
 editing and the table the last confirmed upload sent. A reload shows your drafts on the top layer

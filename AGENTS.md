@@ -23,8 +23,9 @@ the tests in `src/`.
 
 ## Stack
 
-Vite, React, TypeScript, Tailwind v4, shadcn/ui primitives, lucide-react and self-hosted IBM Plex
-through Fontsource. Netlify runs `npm run build` and publishes `dist/`. `dist/` is never committed.
+Vite, React, TypeScript, Tailwind v4, shadcn/ui primitives, lucide-react, sonner for toasts and
+self-hosted IBM Plex through Fontsource. Netlify runs `npm run build` and publishes `dist/`. `dist/`
+is never committed.
 The page makes no analytics, telemetry or external asset requests. GitHub Actions runs
 `npm run verify` on `main` and pull requests (`.github/workflows/ci.yml`); a `v*` tag runs
 `.github/workflows/release.yml`, which verifies that commit, deploys it and publishes the notes.
@@ -91,6 +92,8 @@ keyboard. The production build runs `tsc --noEmit` first, so a type error fails 
   the page asks for another write after a power-off. Over 2.4 GHz the Alt+F4 and Alt+Tab blocks do
   nothing, and the vendor app does no better, so they stay disabled there. The panel's draft is
   remembered with the view and light settings; that is browser memory, not board state.
+- A profile import replaces drafts in the editor and the settings store. It never moves `applied`
+  and never writes to the keyboard; the upload stays a separate, explicit step.
 - The 576-byte table, `AA 55` at 574-575, `idx <= 142`, the begin/announce/commit order, the
   220 ms settle and the 60 ms poll do not change.
 - On the Fn layer, zero means firmware default. Never seed it with factory keys.
@@ -132,6 +135,9 @@ meaning is about availability, and errors stay rust.
   not give one signal two meanings.
 - Copy names the outcome and stays consistent. The button that says **Send time** produces "Sent.
   The screen clock is set to 20:41:07."
+- A toast confirms the action and never holds the only copy of a fact. Sends keep their inline
+  `StatusNote`, the log keeps every transport line, and only the headline goes to the toast. The
+  tones are sage, rust, brass and plain, in `src/components/ui/sonner.tsx`.
 - Before calling UI work done, screenshot it at a wide and a narrow width and look at it. The
   layout usually needs one more pass after the first screenshot.
 - No new dependency for a control that can be built with what is already here. If a well-tested

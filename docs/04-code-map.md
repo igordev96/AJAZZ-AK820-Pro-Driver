@@ -12,7 +12,7 @@ src/main.tsx             React root, fonts and global styles
 src/App.tsx              page composition, upload and restore, drawer state
 src/styles/globals.css   colour, type and radius tokens, bench mat, base styles
 src/components/ui/       Button, Input, Popover, Calendar, Tabs, Checkbox, Slider, Select,
-                         Command, Combobox, ToggleGroup, Sheet
+                         Command, Combobox, ToggleGroup, Sheet, Sonner
 src/components/          StatusNote, TabRow, UsbOnlyBadge
 src/lib/keymap/          constants, factory keys, record encoding, names, parsing, table
 src/lib/hid/             protocol, client, collections, wireless, WebHID types, transfer, time,
@@ -22,10 +22,14 @@ src/lib/lighting/        the 64-byte record, preview motion, accepted-light word
 src/lib/device/          the 64-byte settings record, response levels, sleep options
 src/lib/editor/          row state, reducer, validation, persistence, per-key patches
 src/lib/settings/        remembered view, clock mode and light settings
+src/lib/profile/         the portable JSON profile and its validation
 src/lib/clock.ts         Clock type and the real timer
 src/lib/format.ts        hex formatting
+src/lib/toast.ts         the short confirmation wrapper around sonner
+src/lib/download.ts      handing a text file to the browser
 src/features/device/     useDevice, AppHeader, ViewTabs, DevicePanel
 src/features/editor/     LayerTabs, KeymapBoard, KeyInspector, PendingBar, WriteRules, keyLabels
+src/features/profile/    ProfileMenu: export, import and the confirm step
 src/features/screen/     ScreenPanel, ScreenPreview, ClockCard, DateTimePicker, AnimationCard
 src/features/lighting/   LightingPanel, LightPreview
 src/features/log/        useLog, LogPanel
@@ -51,6 +55,15 @@ React components render and dispatch. They never call `navigator.hid`. `useDevic
 chooser, open and close, and the disconnect listener. Uploads on the wired link go through
 `TransferService`; the receiver's records go through `WirelessClient`. The advanced drawer calls the
 probe services. All of them receive a transport, and writes happen only in event handlers.
+
+`src/lib/profile` is framework-free: it builds and validates the JSON bundle from the editor drafts
+and the settings, and knows nothing about files. `downloadText` in `src/lib/download.ts` is the only
+DOM touch in that path. A profile carries drafts only, so importing one moves no `applied` value and
+writes nothing to the keyboard.
+
+Toasts are UI only. `src/lib/toast.ts` wraps sonner with the app's tones, so a component confirms an
+action without knowing the library. A toast never holds information the log or the panel does not:
+the inline `StatusNote` keeps the detail of a send, and the log keeps every transport line.
 
 `useDevice` records how the keyboard was reached. A device with the `0xFF13` collection is the
 wired board; a device with `0xFF60/0x0061` is the 2.4 GHz receiver, which has no feature reports
@@ -189,8 +202,10 @@ its container. Keys are not re-laid out on mobile; the whole board scales.
 
 The view tabs and the layer tabs are the same control, so both render through `TabRow`. A result
 under a send button is a `StatusNote`: one dot, one sentence, and a colour that says whether the
-keyboard accepted it. `LightPreview` paints from the theme tokens with `fill-*` and `stroke-*`
-utilities, so a palette change reaches it too.
+keyboard accepted it. A tab can carry a brass dot when its view cannot work on the current link;
+`ViewTabs` marks Screen over the 2.4 GHz receiver and gives the trigger an accessible name that says
+so. `LightPreview` paints from the theme tokens with `fill-*` and `stroke-*` utilities, so a palette
+change reaches it too.
 
 Visual states are separate: brass edge and brass legend mean "differs from factory", a brass dot
 means "not uploaded", an ivory edge means "selected", and a dashed cap means "firmware-owned on the
@@ -231,9 +246,21 @@ The **Device** view is two columns. The left one is the vendor's response-time t
 links, with the selected level in ivory so the numbers can be compared before choosing. The right
 one holds the two selects and the three checkboxes, and one Apply writes them together, because the
 record is a snapshot. The values live in the settings store, so a reload shows the last choices
-rather than the defaults. On the 2.4 GHz link the Alt+F4 and Alt+Tab rows are disabled and badged,
-since the receiver ignores those two flags. `src/lib/device` holds the record, the option lists and
-the wording, and `docs/01-protocol.md` §12 holds the captured layout.
+rather than the defaults, and a line under Apply says when they were last sent. On the 2.4 GHz link
+the Alt+F4 and Alt+Tab rows are disabled and badged, since the receiver ignores those two flags.
+`src/lib/device` holds the record, the option lists and the wording, and `docs/01-protocol.md` §12
+holds the captured layout.
+
+`ProfileMenu` sits in the header beside Advanced and Log. Export calls `buildProfile` and hands the
+text to `downloadText`; import reads the file through `readProfile`, shows the counts, and only after
+**Replace drafts** hands the parsed profile to `App`, which swaps the editor drafts and writes the
+device, lighting and clock-mode values to the settings store. The menu is disabled while a transfer
+runs, and a bad file lists its problems instead of applying half of it.
+
+The `Toaster` mounts once in `App` and sits bottom right, above the log footer. Tones come from the
+sonner variables set in `src/components/ui/sonner.tsx`: surface background, sage for success, rust
+for failure, brass for a warning. Sends confirm through both the toast and the inline `StatusNote`,
+and the toast stays the short version.
 
 `AdvancedDrawer` is a `Sheet`: a Radix dialog that slides in from the right, traps focus, locks the
 page scroll and returns focus to the Advanced button on close. Escape and a click on the overlay
@@ -271,7 +298,11 @@ app busy flag through `onBusyChange`.
 | `src/lib/editor/state.test.ts` | reducer, pending count, validation, map apply |
 | `src/lib/editor/persistence.test.ts` | one stored object, draft/applied, legacy migration |
 | `src/lib/editor/patches.test.ts` | per-key records sliced from the table, media, Fn, order |
+| `src/lib/profile/profile.test.ts` | bundle round-trip, bad files, dropped rows, locked Fn keys |
 | `src/lib/hid/wireless.test.ts` | frame, checksum, record, interface choice, patches, handshake retry |
+| `src/features/log/LogPanel.test.tsx` | copy confirmation, refused clipboard, empty log |
+| `src/features/profile/ProfileMenu.test.tsx` | export, confirm step, broken file |
+| `src/features/device/DevicePanel.test.tsx` | link wording, apply, last send, receiver limits |
 | `src/features/device/useDevice.test.ts` | chooser, open, disconnect, receiver, no config interface |
 | `src/features/editor/*.test.tsx` | board, inspector, staging bar |
 | `src/features/advanced/AdvancedDrawer.test.tsx` | each tab, close paths, busy state |

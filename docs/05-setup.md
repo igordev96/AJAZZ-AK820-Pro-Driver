@@ -138,6 +138,7 @@ and never committed.
 | Upload accepted but nothing changed | wrong layer, a `fnlayer_disable` key, or a record type the firmware ignores |
 | A change is still marked pending after a reload | expected: the page remembers your draft, and the keyboard has not been told yet. Upload it, or reset the key |
 | A change is missing in another browser or profile | expected: edits live in this browser profile only |
+| An imported profile changed the keys but the keyboard still types the old ones | expected: the import fills drafts. Upload the layer, and apply the device and lighting values |
 | `localStorage` errors | the app was opened from `file://` or storage is blocked; use localhost or HTTPS |
 | Everything looks fine but keys do not type | restore the factory map, or use the vendor app's reset |
 | The deployed site does not see the keyboard | serve it over HTTPS and allow the device on that origin; permission does not carry over from localhost |
