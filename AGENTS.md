@@ -69,6 +69,10 @@ pass before a commit. Use `npm run format` to apply oxfmt.
 Tests use Vitest and React Testing Library. HID tests use a fake device, so they run without a
 keyboard. The production build runs `tsc --noEmit` first, so a type error fails the build.
 
+`npm install` wires `.githooks` through `core.hooksPath`. The pre-commit hook runs the format check
+and the linter; the pre-push hook refuses a `v*` tag that is lightweight, or whose annotation does
+not lead with its version.
+
 ## Deploys
 
 A green Release workflow does not prove the site changed. After a tag ships, open
@@ -182,7 +186,8 @@ Test: docs/02-hardware-tests.md Test N    (when verified on the board)
 
 Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `build`, `ci`, `style`, `perf`.
 
-Scopes: `app`, `editor`, `keymap`, `media`, `transport`, `styles`, `docs`, `tools`, `repo`.
+Scopes: `app`, `editor`, `keymap`, `media`, `transport`, `wireless`, `device`, `protocol`, `log`,
+`profile`, `styles`, `docs`, `tools`, `repo`, `release`, `deps`, `history`.
 
 - one logical change per commit; code, tests and the docs it invalidates belong together;
 - no `wip`, `update`, `fix stuff` or pasted file lists;
@@ -214,12 +219,12 @@ gates all of them.
 Hardware evidence lives in `docs/02-hardware-tests.md`. Tests 9 to 24 cover the React rewrite, the
 screen clock and animation channel, the light with its 20 effects, the device settings, and the
 2.4 GHz receiver with its records, key patches and power-cycle behaviour. A release that changes a
-byte needs its own dated test; one that changes only the interface does not. `2.9.1` is the newest
-tag.
+byte needs its own dated test; one that changes only the interface does not. The newest tag is
+whatever `git tag --sort=-v:refname` prints first, so read it instead of pinning it here.
 
-The v1 `serve.js`, `start.cmd` and `tools/` JavaScript harnesses are gone; their last copy is in
-the `v1.0.1` tag. The npm scripts are the check path, and CI runs them. The root `index.html` is
-the Vite entry, not the old product.
+The v1 `serve.js`, `start.cmd` and its JavaScript harnesses are gone; their last copy is in the
+`v1.0.1` tag. `tools/` now holds two C# HID helpers, `hidcaps.cs` and `hidwatch.cs`. The npm scripts
+are the check path, and CI runs them. The root `index.html` is the Vite entry, not the old product.
 
 Keep the protocol behaviour identical between releases. Do not fold a byte change into an
 interface change.
