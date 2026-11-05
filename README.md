@@ -26,6 +26,18 @@ Developers: see [Quick start](#quick-start).
 AK820 Pro is a trademark of its owner. This project is not affiliated with AJAZZ. The tool writes
 the key table, so keep the vendor application available for recovery.
 
+## Install it as a desktop app
+
+The page can be installed as an app: its own window, a Start menu or Applications entry, and it
+opens with no network once it has loaded. Use the install control in the address bar or the browser
+menu. Chrome, Edge and Opera offer it on desktop; mobile browsers do not, and would not help, since
+WebHID is desktop only.
+
+A cached copy does not go stale silently. When a newer build is ready, the strip under the header
+names the build you are running and offers **Reload**, and nothing changes under the open page until
+you press it. Drafts live in this browser, so a reload keeps them. The log footer shows the build
+number too, which is what to quote in a bug report.
+
 ## Status
 
 The app is a Vite, React and TypeScript rewrite of the v1 single-file app, and the wire bytes it
@@ -265,9 +277,11 @@ place.
 
 ## Privacy
 
-The page makes no analytics, telemetry or external asset requests. Fonts are self-hosted. The only
-stored data is what this browser remembers: the view and the screen, lighting and clock settings in
-`ak820.settings`, and the two key layers in `ak820.layers`.
+The page makes no analytics, telemetry or external asset requests. Fonts are self-hosted. A
+service worker keeps the current build on this device so the page opens offline; it stores this
+site's own files and sends nothing. The only stored data is what this browser remembers: the view
+and the screen, lighting and clock settings in `ak820.settings`, and the two key layers in
+`ak820.layers`.
 
 ## Development
 
@@ -278,8 +292,10 @@ npm install
 npm run verify
 ```
 
-`npm run verify` runs the typecheck, the linter, the format check, the Vitest suite and the
-production build. All five must pass before a commit.
+`npm run verify` runs the typecheck, the linter, the format check, the Vitest suite, the production
+build and the precache check. All six must pass before a commit. The last one reads `dist/sw.js` and
+fails when a shipped file is missing from the offline cache, which is the failure that would leave a
+panel blank with no network.
 
 GitHub Actions runs the same command on every push to `main` and every pull request. The workflow
 is `.github/workflows/ci.yml`.

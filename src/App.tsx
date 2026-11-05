@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Toaster } from '@/components/ui/sonner';
+import { UpdateNotice } from '@/components/update-notice';
 import { AppHeader } from '@/features/device/AppHeader';
 import { ViewTabs, type View } from '@/features/device/ViewTabs';
 import { updateSettings, useSettings } from '@/features/settings/useSettings';
@@ -751,6 +752,10 @@ export function App() {
         onImportProfile={handleImportProfile}
         onToggleLog={() => setLogOpen((open) => !open)}
       />
+
+      {/* Above the connection banner: a build that is one release behind is the
+          more important thing to say, and it outlives a reconnect. */}
+      <UpdateNotice />
 
       {banner ? (
         <div

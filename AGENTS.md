@@ -63,8 +63,8 @@ npm run dev
 npm run verify
 ```
 
-`npm run verify` runs typecheck, lint, format check, tests and the production build. All five must
-pass before a commit. Use `npm run format` to apply oxfmt.
+`npm run verify` runs typecheck, lint, format check, tests, the production build and the precache
+check. All six must pass before a commit. Use `npm run format` to apply oxfmt.
 
 Tests use Vitest and React Testing Library. HID tests use a fake device, so they run without a
 keyboard. The production build runs `tsc --noEmit` first, so a type error fails the build.
@@ -111,6 +111,10 @@ touched, then report what the page actually says.
   remembered with the view and light settings; that is browser memory, not board state.
 - A profile import replaces drafts in the editor and the settings store. It never moves `applied`
   and never writes to the keyboard; the upload stays a separate, explicit step.
+- The page is installable and works offline. `vite-plugin-pwa` precaches the build, and the worker
+  never activates itself: a newer build waits for the **Reload** strip, because a stale bundle is
+  stale protocol bytes. Keep `skipWaiting` and `clientsClaim` off, keep the four lazy panels in the
+  precache, and let `npm run check:precache` prove it.
 - The 576-byte table, `AA 55` at 574-575, `idx <= 142`, the begin/announce/commit order, the
   220 ms settle and the 60 ms poll do not change.
 - On the Fn layer, zero means firmware default. Never seed it with factory keys.

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Maskable source for the installed app. The mark stays inside the safe
+       circle (80% of the tile), so an Android or Windows mask cannot clip the
+       bezel or the brass foot. Rendered to public/icons/maskable-*.png. -->
+  <rect width="64" height="64" fill="#0f1216" />
+  <rect
+    x="15"
+    y="14"
+    width="34"
+    height="29"
+    rx="6"
+    fill="#232a33"
+    stroke="#d3a64c"
+    stroke-width="1.7"
+  />
+  <rect x="20" y="19" width="24" height="17" rx="2.5" fill="#0f1216" opacity="0.5" />
+  <rect x="15" y="47" width="34" height="3.4" rx="1.7" fill="#d3a64c" />
+</svg>

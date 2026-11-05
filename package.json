@@ -15,7 +15,8 @@
     "format:check": "oxfmt --check src scripts index.html vite.config.ts tsconfig.json components.json package.json .oxlintrc.json .oxfmtrc.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build",
+    "check:precache": "node scripts/check-precache.mjs",
+    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build && npm run check:precache",
     "release": "node scripts/release.mjs",
     "hooks": "node scripts/setup-hooks.mjs",
     "prepare": "node scripts/setup-hooks.mjs"
@@ -57,6 +58,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
+    "vite-plugin-pwa": "^2.0.0",
     "vitest": "^5.0.5"
   },
   "engines": {

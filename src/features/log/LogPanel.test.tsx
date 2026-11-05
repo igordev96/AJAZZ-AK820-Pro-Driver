@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { APP_VERSION } from '@/lib/build';
 import { notify } from '@/lib/toast';
 import { LogPanel } from './LogPanel';
 import type { LogEntry } from './useLog';
@@ -38,6 +39,12 @@ describe('LogPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Copy' }));
 
     expect(notify.ok).toHaveBeenCalledWith('Log copied, 2 lines.');
+  });
+
+  it('names the build that is running', () => {
+    renderPanel();
+
+    expect(screen.getByText(`build ${APP_VERSION}`)).toBeInTheDocument();
   });
 
   it('says so when the clipboard is refused', async () => {

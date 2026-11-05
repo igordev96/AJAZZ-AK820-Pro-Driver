@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { GitHubMark } from '@/components/github-mark';
 import { Button } from '@/components/ui/button';
 import type { LogLevel } from '@/lib/hid/transfer';
+import { APP_VERSION } from '@/lib/build';
 import { notify } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { formatLog, type LogEntry } from './useLog';
@@ -74,6 +75,12 @@ export function LogPanel({ entries, open, onToggle, onClear }: LogPanelProps) {
             <GitHubMark className="size-3.5" />
             <span>GitHub</span>
           </a>
+
+          {/* A cached page can outlive a release, so the build that is running
+              has to be readable somewhere quiet. */}
+          <span className="hidden shrink-0 font-mono text-[10px] text-muted/70 sm:inline">
+            build {APP_VERSION}
+          </span>
         </div>
 
         {open ? (

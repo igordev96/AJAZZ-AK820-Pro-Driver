@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- iOS masks this image itself, so the tile is a plain square with the mark
+       centred. Rendered to public/icons/apple-touch-icon.png. -->
+  <rect width="64" height="64" fill="#0f1216" />
+  <rect
+    x="13"
+    y="12"
+    width="38"
+    height="32"
+    rx="7"
+    fill="#232a33"
+    stroke="#d3a64c"
+    stroke-width="2"
+  />
+  <rect x="19" y="18" width="26" height="19" rx="3" fill="#0f1216" opacity="0.55" />
+  <rect x="13" y="48" width="38" height="4" rx="2" fill="#d3a64c" />
+</svg>

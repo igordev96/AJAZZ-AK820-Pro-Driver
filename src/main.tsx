@@ -6,6 +6,7 @@ import '@fontsource/ibm-plex-mono/latin-500.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { registerServiceWorker } from './pwa/register';
 import './styles/globals.css';
 
 const root = document.getElementById('root');
@@ -13,6 +14,8 @@ const root = document.getElementById('root');
 if (!root) {
   throw new Error('Missing #root element');
 }
+
+registerServiceWorker();
 
 createRoot(root).render(
   <StrictMode>

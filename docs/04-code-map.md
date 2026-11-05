@@ -13,7 +13,7 @@ src/App.tsx              page composition, upload and restore, drawer state
 src/styles/globals.css   colour, type and radius tokens, bench mat, base styles
 src/components/ui/       Button, Input, Popover, Calendar, Tabs, Checkbox, Slider, Select,
                          Command, Combobox, ToggleGroup, Sheet, Sonner
-src/components/          StatusNote, TabRow, UsbOnlyBadge
+src/components/          StatusNote, TabRow, UsbOnlyBadge, UpdateNotice
 src/lib/keymap/          constants, factory keys, record encoding, names, parsing, table
 src/lib/hid/             protocol, client, collections, wireless, WebHID types, transfer, time,
                          probes, raw
@@ -25,8 +25,13 @@ src/lib/settings/        remembered view, clock mode and light settings
 src/lib/profile/         the portable JSON profile and its validation
 src/lib/clock.ts         Clock type and the real timer
 src/lib/format.ts        hex formatting
+src/lib/build.ts         the package version, inlined by `define`
 src/lib/toast.ts         the short confirmation wrapper around sonner
 src/lib/download.ts      handing a text file to the browser
+src/pwa/                 update store and the service worker registration
+src/env.d.ts             the `APP_BUILD_VERSION` global and the PWA client types
+public/manifest.webmanifest   name, colours and the five icons
+public/icons/            the PNG set, rendered from public/favicon.svg and docs/assets/icons
 src/features/device/     useDevice, AppHeader, ViewTabs, DevicePanel
 src/features/editor/     LayerTabs, KeymapBoard, KeyInspector, PendingBar, WriteRules, keyLabels
 src/features/profile/    ProfileMenu: export, import and the confirm step
@@ -36,6 +41,7 @@ src/features/log/        useLog, LogPanel
 src/features/settings/   the settings store and its React hook
 src/features/advanced/   AdvancedDrawer
 src/test/                Vitest setup, fake HID device and fake clock
+scripts/                 release, git hooks and the precache check
 ```
 
 ## 2. Boundaries
@@ -262,6 +268,13 @@ sonner variables set in `src/components/ui/sonner.tsx`: surface background, sage
 for failure, brass for a warning. Sends confirm through both the toast and the inline `StatusNote`,
 and the toast stays the short version.
 
+`UpdateNotice` is the strip between the header and the connection banner, and it renders nothing
+until the worker reports a waiting build. It uses brass because a waiting build is not a failure,
+and it stays on the page until someone acts on it, which is why it is not a toast. `src/pwa` holds
+the framework-free store it reads through `useSyncExternalStore` and the single module that imports
+`virtual:pwa-register`; `App` only mounts the strip. The log footer carries `build 2.10.2` from
+`src/lib/build.ts`, so a cached page can still be identified.
+
 `AdvancedDrawer` is a `Sheet`: a Radix dialog that slides in from the right, traps focus, locks the
 page scroll and returns focus to the Advanced button on close. Escape and a click on the overlay
 both close it, and both are refused while a probe is running. The slide and the overlay fade are
@@ -311,6 +324,9 @@ app busy flag through `onBusyChange`.
 | `src/features/screen/ScreenPanel.test.tsx` | preview, custom input, send payload |
 | `src/features/lighting/LightingPanel.test.tsx` | colour, brightness, preview labels, status |
 | `src/features/settings/store.test.ts` | change notification, delayed write, flush, reset |
+| `src/pwa/update-store.test.ts` | ready once, subscribers, unsubscribe, reload handler |
+| `src/components/update-notice.test.tsx` | hidden until waiting, build named, Reload asks the worker |
+| `scripts/check-precache.mjs` | not a test: the build check that every shipped file is precached |
 | `src/App.test.tsx` | offline editing, layers, log |
 | `src/App.upload.test.tsx` | fake HID end to end: connect, edit, upload, commit |
 | `src/App.screen.test.tsx` | view switch and a fake-HID clock send |
@@ -359,6 +375,10 @@ the app tests wait with `findBy` after switching views.
 15. **The light is one 64-byte record with `AA 55` at offset 14.** Byte 8 is colourful, 9 brightness,
     10 speed and 11 direction (0 right, 1 left, 2 up, 3 down). Announce `04 13` with one chunk, then
     commit and end. Leave 60 ms before the commit.
+16. **The worker never takes over by itself.** `skipWaiting` and `clientsClaim` stay off, and the
+    only way a new build replaces a running one is the **Reload** button. `npm run check:precache`
+    fails when a shipped file, an icon size or the `SKIP_WAITING` handler is missing, because a lazy
+    panel left out of the precache shows a blank tab with no network.
 
 ## 9. Common changes
 

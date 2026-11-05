@@ -83,6 +83,12 @@ WebHID won because it is the only option with zero install and a stable API for 
     comes back. Tests 18 to 20 confirmed the records, the patches and an 81-patch whole-map restore
     on the board. Tests 21 to 24 then mapped what the link will not do: the five settings reset at
     power-on, the Alt+F4 and Alt+Tab blocks do nothing, and the screen has no channel at all.
+17. **Installable and offline** — a hand-written webmanifest, five PNG icons and a generated service
+    worker let Chrome, Edge and Opera install the page as a desktop app and open it with no network.
+    The precache holds the whole build, all four lazy panels and the woff2 subsets, which is 26 files
+    and about 790 KiB. A newer build waits in the worker until the strip above the workbench offers
+    the reload: a tool that writes bytes to a keyboard must not swap its own code mid-session. No
+    bytes changed, so there is no new hardware test.
 
 ## 4. Lessons that cost time
 
@@ -125,6 +131,13 @@ WebHID won because it is the only option with zero install and a stable API for 
 * **A colour that encodes state cannot also decorate.** The first v2 build gave the Fn cap a brass
   edge for looks, while the legend says brass means a key differs from the factory table. The first
   question from the user was whether Fn had been remapped. Keep one meaning per visual signal.
+* **An offline copy carries old bytes.** Once a service worker can keep an old build alive, that
+  build is old protocol constants, so "which version is this" stops being a detail. The build number
+  now sits in the log footer, and a new worker waits for the reload instead of claiming the tab on
+  activation.
+* **A deploy can strand a tab.** Netlify replaces its hashed files on every deploy, so a tab or a
+  bookmark holding an old `index.html` would ask for assets that no longer exist. Precaching the
+  build removes that failure, which turned out to be the stronger reason for the offline work.
 
 ## 5. Open threads
 
