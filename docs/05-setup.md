@@ -89,9 +89,11 @@ release.
 That means a push to `main` never reaches production. The production site is
 <https://ak820-webhid.netlify.app/> and it always matches the newest tag.
 
-The release notes come from the tag. Its first line is the title, the body is the summary, and
+The release notes come from the tag. Its first line is the title and it starts with the version, as
+in `v2.10.0 — toasts, profiles and a device panel that remembers`; the body is the summary, and
 GitHub's generated commit list follows both. `npm run release -- minor notes.md` writes the bump,
-the commit and the annotated tag; pushing the tag starts the workflow.
+the commit and the annotated tag, and puts the version in front of the first line when the notes
+file leaves it out. Pushing the tag starts the workflow.
 
 Two things live outside the repository:
 

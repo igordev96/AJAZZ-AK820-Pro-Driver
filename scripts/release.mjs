@@ -31,7 +31,9 @@ const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
 const tag = `v${version}`;
 
 const notes = notesPath ? readFileSync(notesPath, 'utf8').trim() : '';
-const message = notes || tag;
+// The release title is the first line of this message, so the version has to lead
+// it. Notes that already open with the tag are left alone.
+const message = !notes ? tag : notes.startsWith(tag) ? notes : `${tag} — ${notes}`;
 const firstLine = message.split('\n')[0] ?? tag;
 
 // The Release workflow reads the tag: its first line is the release title and
