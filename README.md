@@ -28,28 +28,16 @@ the key table, so keep the vendor application available for recovery.
 
 ## Status
 
-The app is a Vite, React and TypeScript rewrite of the v1.0.1 single-file app. The key table, the
-transfer sequence and the wire bytes are unchanged. The build has passed tests against a fake
-device, and hardware Test 9 passed on 29 Oct 2026: top layer, Fn media override, both restore
-actions and the upload lock. The screen clock was added the same day and confirmed in Test 10, for
-this computer's time and a time picked by hand. Test 11 added the screen data channel with one
-128 × 128 picture, Test 12 played a 31-frame GIF, and Test 13 played a 60-frame GIF after the 16-bit
-block count was fixed. Test 14 showed that interrupting an upload wedges the keyboard until it is
-unplugged, so the animation card has no cancel. Test 15 added the solid-colour light and brightness,
-confirmed on the board after a commit-timing fix. Test 16 added the 20 effects with colour, speed and
-direction; every mode worked, and a left/right direction bug was found and fixed. The interface
-work that followed changed no bytes, so it has no hardware test. Test 17, on 2 Nov 2026, added the
-five device settings: the three shortcut blocks work, and the sleep and response-time writes were
-accepted, though their effects were not observed at the time. Test 18, on 3 Nov 2026, confirmed the 2.4 GHz
-path: the light, the clock and the device settings reach the board through the receiver, once the
-page has sent the init and heartbeat frames it waits for. Test 19 confirmed key changes over the
-same link, one patch per key, with no confirmation from the keyboard, and Test 20 restored the whole
-top layer that way. Test 21 found what a power cycle keeps: the light, the clock and the key map came
-back, and the shortcut blocks did not. Test 22 repeated that over USB, so it is the board's behaviour
-rather than the link's. Test 23 found that the Alt+F4 and Alt+Tab blocks, which work over USB, do
-nothing over the receiver, and that the vendor app does no better there. Test 24 saw the sleep time
-and the response level take effect over that link, and the remaining settings reset at power-on.
-[docs/02-hardware-tests.md](docs/02-hardware-tests.md) records the evidence.
+The app is a Vite, React and TypeScript rewrite of the v1 single-file app, and the wire bytes it
+sends are unchanged. Each feature that writes to the board has been run on an AK820 Pro: the key
+table and both layers, the restore actions, the screen clock and animation channel, the light with
+its 20 effects, the five device settings, and the 2.4 GHz receiver with its records, key patches and
+power-cycle behaviour. Tests 9 to 24 cover the v2 build, and
+[docs/02-hardware-tests.md](docs/02-hardware-tests.md) records each run, its date and what the board
+did.
+
+The five device settings reset at power-on on either link, so send them again after the keyboard has
+been switched off. The key map, the light and the clock survive a power cycle.
 
 ## What it does
 
