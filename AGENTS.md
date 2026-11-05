@@ -46,6 +46,13 @@ Stop and ask for approval before:
 
 Read-only commands such as `git status`, `git log`, `git diff` and reading files need no approval.
 
+## Secrets
+
+Never read a token out of `.git/config`, a remote URL or a log line, and never echo one into output.
+Use the credential helper, or `gh` when it is installed. A token that reaches a transcript is
+burned: say so, stop using it and ask for a new one. Keep secrets out of commits, docs, issues and
+release notes.
+
 ## Checks
 
 Node.js 22.12+ is required for development and the build. Node 24 is recommended.
@@ -61,6 +68,12 @@ pass before a commit. Use `npm run format` to apply oxfmt.
 
 Tests use Vitest and React Testing Library. HID tests use a fake device, so they run without a
 keyboard. The production build runs `tsc --noEmit` first, so a type error fails the build.
+
+## Deploys
+
+A green Release workflow does not prove the site changed. After a tag ships, open
+<https://ak820-webhid.netlify.app/> and read the title, the description and whatever the release
+touched, then report what the page actually says.
 
 ## Definition of done
 

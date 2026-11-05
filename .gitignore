@@ -9,6 +9,7 @@ coverage/
 
 # Local files
 *.local
+AGENTS.local.md
 .env
 .env.*
 
