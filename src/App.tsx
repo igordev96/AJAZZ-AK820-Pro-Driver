@@ -734,6 +734,9 @@ export function App() {
 
   return (
     <div className="flex min-h-screen flex-col bg-ink text-ivory">
+      {/* The header carries the working title at small sizes; this gives the page
+          one heading that names the device and what the tool does. */}
+      <h1 className="sr-only">AJAZZ AK820 Pro keyboard driver and configurator</h1>
       <AppHeader
         device={device}
         supported={device.supported}

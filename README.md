@@ -1,4 +1,4 @@
-# AK820 Pro WebHID configurator
+# AJAZZ AK820 Pro browser driver and WebHID configurator
 
 [![CI](https://github.com/igordev96/AK820-WebHID/actions/workflows/ci.yml/badge.svg)](https://github.com/igordev96/AK820-WebHID/actions/workflows/ci.yml)
 [![Release](https://github.com/igordev96/AK820-WebHID/actions/workflows/release.yml/badge.svg)](https://github.com/igordev96/AK820-WebHID/actions/workflows/release.yml)
@@ -7,10 +7,12 @@
 
 ![AK820 WebHID cover: a rendered keyboard beside the title and a Zero drivers badge](docs/assets/ak820-webhid-cover.jpg)
 
-An unofficial browser configurator for the AJAZZ AK820 Pro, also sold under the Epomaker name.
-Remap keys, set Fn overrides, set the screen clock and play GIFs on the 128 × 128 screen, and set
-the keyboard light. It talks to the keyboard's configuration interface over WebHID, so there is
-nothing to install and no admin rights to ask for.
+An unofficial browser driver and configurator for the AJAZZ AK820 Pro, also sold under the Epomaker
+name. It talks to the keyboard's configuration interface over WebHID, so the everyday jobs need no
+installer and no admin rights: remap keys, set Fn overrides, set the screen clock and play GIFs on
+the 128 × 128 screen, and set the keyboard light.
+
+Nothing is installed with it, so "driver" here means this page, not a file on your disk.
 
 ## Use it online
 
