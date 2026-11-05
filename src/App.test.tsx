@@ -65,7 +65,7 @@ describe('App', () => {
 
     const link = screen.getByRole('link', { name: /open the project on github/i });
 
-    expect(link).toHaveAttribute('href', 'https://github.com/igordev96/AK820-WebHID');
+    expect(link).toHaveAttribute('href', 'https://github.com/igordev96/AJAZZ-AK820-Pro-Driver');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(link).toHaveAttribute('target', '_blank');
   });

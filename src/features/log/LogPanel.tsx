@@ -6,7 +6,7 @@ import { notify } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { formatLog, type LogEntry } from './useLog';
 
-const REPOSITORY_URL = 'https://github.com/igordev96/AK820-WebHID';
+const REPOSITORY_URL = 'https://github.com/igordev96/AJAZZ-AK820-Pro-Driver';
 
 const levelClass: Record<LogLevel, string> = {
   info: 'text-ivory',

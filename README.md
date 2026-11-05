@@ -1,9 +1,9 @@
 # AJAZZ AK820 Pro browser driver and WebHID configurator
 
-[![CI](https://github.com/igordev96/AK820-WebHID/actions/workflows/ci.yml/badge.svg)](https://github.com/igordev96/AK820-WebHID/actions/workflows/ci.yml)
-[![Release](https://github.com/igordev96/AK820-WebHID/actions/workflows/release.yml/badge.svg)](https://github.com/igordev96/AK820-WebHID/actions/workflows/release.yml)
-[![version](https://img.shields.io/github/package-json/v/igordev96/AK820-WebHID?color=d3a64c&label=version)](https://github.com/igordev96/AK820-WebHID/releases)
-[![license](https://img.shields.io/github/license/igordev96/AK820-WebHID?color=d3a64c)](LICENSE)
+[![CI](https://github.com/igordev96/AJAZZ-AK820-Pro-Driver/actions/workflows/ci.yml/badge.svg)](https://github.com/igordev96/AJAZZ-AK820-Pro-Driver/actions/workflows/ci.yml)
+[![Release](https://github.com/igordev96/AJAZZ-AK820-Pro-Driver/actions/workflows/release.yml/badge.svg)](https://github.com/igordev96/AJAZZ-AK820-Pro-Driver/actions/workflows/release.yml)
+[![version](https://img.shields.io/github/package-json/v/igordev96/AJAZZ-AK820-Pro-Driver?color=d3a64c&label=version)](https://github.com/igordev96/AJAZZ-AK820-Pro-Driver/releases)
+[![license](https://img.shields.io/github/license/igordev96/AJAZZ-AK820-Pro-Driver?color=d3a64c)](LICENSE)
 
 ![AK820 WebHID cover: a rendered keyboard beside the title and a Zero drivers badge](docs/assets/ak820-webhid-cover.jpg)
 
@@ -19,7 +19,7 @@ Nothing is installed with it, so "driver" here means this page, not a file on yo
 Open <https://ak820-webhid.netlify.app/> in Chrome, Edge or Opera, with the keyboard on its USB
 cable or its 2.4 GHz dongle, and the vendor app closed. That is the whole setup.
 
-Source, issues and release notes: <https://github.com/igordev96/AK820-WebHID>.
+Source, issues and release notes: <https://github.com/igordev96/AJAZZ-AK820-Pro-Driver>.
 
 Developers: see [Quick start](#quick-start).
 
