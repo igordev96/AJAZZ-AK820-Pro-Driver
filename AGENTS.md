@@ -139,6 +139,13 @@ A new command needs three things before it ships: a packet test, a fake-transpor
 the sequence, and a dated hardware test. The mailbox is not evidence; the user looking at the
 keyboard is.
 
+## Captures
+
+Start the hook before the vendor app writes, change one setting per run, and save the log as
+`re/captures/<link>-<feature>.log`, where `<link>` is `usb` or `dongle`. Cite the file and the date
+in `docs/01-protocol.md` next to the layout it proves. Never copy a capture, the vendor binary, the
+layout XML or the installer into this repository.
+
 ## Design work
 
 Load the `frontend-design` skill before reshaping the UI or adding a view. Keep the visual language
