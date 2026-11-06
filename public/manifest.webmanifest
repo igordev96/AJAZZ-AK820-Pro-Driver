@@ -2,7 +2,7 @@
   "id": "/",
   "name": "AJAZZ AK820 Pro driver",
   "short_name": "AK820 Pro",
-  "description": "Remap keys, set the screen and set the light on the AK820 Pro over WebHID. No install, and it keeps working offline once loaded.",
+  "description": "Remap keys, set the screen and set the light on the AK820 Pro over WebHID. No driver install, and it keeps working offline once loaded.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -35,6 +35,22 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/app-wide.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "The key board, the inspector and the pending bar in a desktop window"
+    },
+    {
+      "src": "/screenshots/app-narrow.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "The same workbench in a narrow window, with the board scaled to fit"
     }
   ]
 }

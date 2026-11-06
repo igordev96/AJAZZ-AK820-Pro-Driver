@@ -12,7 +12,8 @@ name. It talks to the keyboard's configuration interface over WebHID, so the eve
 installer and no admin rights: remap keys, set Fn overrides, set the screen clock and play GIFs on
 the 128 × 128 screen, and set the keyboard light.
 
-Nothing is installed with it, so "driver" here means this page, not a file on your disk.
+Nothing is installed to use it, so "driver" here means this page, not a file on your disk. The page
+can be installed as an app; that is optional, and covered below.
 
 ## Use it online
 

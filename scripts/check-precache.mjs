@@ -13,14 +13,6 @@ import { join, relative } from 'node:path';
 
 const DIST = 'dist';
 
-const ICONS = {
-  'icons/icon-192.png': 192,
-  'icons/icon-512.png': 512,
-  'icons/maskable-192.png': 192,
-  'icons/maskable-512.png': 512,
-  'icons/apple-touch-icon.png': 180,
-};
-
 const ROOT_FILES = ['index.html', 'manifest.webmanifest', 'favicon.svg'];
 
 const problems = [];
@@ -86,10 +78,32 @@ for (const path of ROOT_FILES) {
   if (!precached.includes(path)) fail(`${path} is not precached`);
 }
 
-for (const [path, size] of Object.entries(ICONS)) {
+// Every image the manifest promises. A declared size that the file does not have
+// is a broken install icon or a stretched dialog screenshot.
+const manifest = JSON.parse(await readFile(join(DIST, 'manifest.webmanifest'), 'utf8'));
+const declared = [
+  ...(manifest.icons ?? []).map((entry) => ({ ...entry, kind: 'icon' })),
+  ...(manifest.screenshots ?? []).map((entry) => ({ ...entry, kind: 'screenshot' })),
+];
+
+const expected = new Map();
+for (const entry of declared) {
+  const path = normalize(entry.src ?? '');
+  const [width, height] = String(entry.sizes ?? '')
+    .split('x')
+    .map(Number);
+  if (!width || !height) {
+    fail(`the manifest gives ${path || '(no src)'} no usable pixel size`);
+    continue;
+  }
+  expected.set(path, { width, height, kind: entry.kind });
+}
+expected.set('icons/apple-touch-icon.png', { width: 180, height: 180, kind: 'Apple touch icon' });
+
+for (const [path, { width, height, kind }] of expected) {
   const buffer = await readFile(join(DIST, path)).catch(() => null);
   if (buffer === null) {
-    fail(`${path} is missing`);
+    fail(`the manifest's ${kind} ${path} is missing from dist`);
     continue;
   }
 
@@ -98,9 +112,17 @@ for (const [path, size] of Object.entries(ICONS)) {
     fail(`${path} is not a PNG`);
     continue;
   }
-  if (actual.width !== size || actual.height !== size) {
-    fail(`${path} is ${actual.width}x${actual.height}, expected ${size}x${size}`);
+  if (actual.width !== width || actual.height !== height) {
+    fail(`${path} is ${actual.width}x${actual.height}, but the manifest says ${width}x${height}`);
   }
+}
+
+const iconSizes = new Set((manifest.icons ?? []).map((entry) => entry.sizes));
+for (const size of ['192x192', '512x512']) {
+  if (!iconSizes.has(size)) fail(`the manifest declares no ${size} icon`);
+}
+if (!(manifest.icons ?? []).some((entry) => String(entry.purpose).includes('maskable'))) {
+  fail('the manifest declares no maskable icon, so an Android or Windows mask would crop the mark');
 }
 
 // The Reload button posts this message; without the listener it does nothing.
@@ -133,5 +155,5 @@ if (problems.length) {
 const fonts = precached.filter((path) => path.endsWith('.woff2')).length;
 console.log(
   `check-precache: ${precached.length} files precached, ${fonts} font subsets, ` +
-    `${Object.keys(ICONS).length} icons sized correctly.`,
+    `${expected.size} images match the manifest.`,
 );

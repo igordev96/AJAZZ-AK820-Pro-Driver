@@ -25,7 +25,9 @@ export default defineConfig({
       devOptions: { enabled: false },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'],
-        globIgnores: ['og.jpg', 'sitemap.xml', 'robots.txt'],
+        // The install dialog fetches the screenshots; the app never does, so
+        // they stay out of the offline cache.
+        globIgnores: ['og.jpg', 'sitemap.xml', 'robots.txt', 'screenshots/*'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
         skipWaiting: false,

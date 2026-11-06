@@ -46,7 +46,7 @@ That runs all six steps in order:
 | format | `npm run format:check` | `oxfmt --check` on the source and config files |
 | tests | `npm run test` | Vitest, React Testing Library, fake HID device |
 | build | `npm run build` | typecheck, then `vite build`, which also writes `dist/sw.js` |
-| precache | `npm run check:precache` | reads `dist/sw.js`: every shipped file is cached, the icons are the size they claim, the worker waits for the reload |
+| precache | `npm run check:precache` | reads `dist/sw.js`: every shipped file is cached, the icons and screenshots match the sizes the manifest claims, the worker waits for the reload |
 
 `npm install` points git at `.githooks`, so every commit runs `format:check` and `lint` first. Both
 only read: when one fails the commit stops and nothing gets rewritten under you. Run
@@ -141,6 +141,13 @@ The icons are committed as PNGs. `public/icons/icon-192.png` and `icon-512.png` 
 `docs/assets/icons/maskable.svg` and `apple-touch.svg`, which keep the mark inside the safe circle.
 Re-render them with `npx sharp-cli --density 600 -i <source.svg> -o <target.png> resize <n> <n>` if
 the mark changes, then look at the result before committing it.
+
+The install dialog also shows two screenshots: `public/screenshots/app-wide.png` at 1280 × 800 and
+`app-narrow.png` at 390 × 844. Both are captures of the real app, taken in a frame of that exact
+size so the layout is the one a person gets at that width. The app never requests them, so they are
+kept out of the precache by `globIgnores`; only the dialog fetches them. Re-capture them when the
+header, the board or the install copy changes. Their sizes are checked against the manifest like
+the icons, so a stale capture with the wrong dimensions fails `npm run verify`.
 
 Netlify's deploy badge is not in the README. It reports the newest deploy on the production branch,
 which is now the skipped build from a push to `main`, so it would read as cancelled between

@@ -30,8 +30,9 @@ src/lib/toast.ts         the short confirmation wrapper around sonner
 src/lib/download.ts      handing a text file to the browser
 src/pwa/                 update store and the service worker registration
 src/env.d.ts             the `APP_BUILD_VERSION` global and the PWA client types
-public/manifest.webmanifest   name, colours and the five icons
+public/manifest.webmanifest   name, colours, the five icons and two screenshots
 public/icons/            the PNG set, rendered from public/favicon.svg and docs/assets/icons
+public/screenshots/      the two captures the install dialog shows, outside the precache
 src/features/device/     useDevice, AppHeader, ViewTabs, DevicePanel
 src/features/editor/     LayerTabs, KeymapBoard, KeyInspector, PendingBar, WriteRules, keyLabels
 src/features/profile/    ProfileMenu: export, import and the confirm step

@@ -86,9 +86,10 @@ WebHID won because it is the only option with zero install and a stable API for 
 17. **Installable and offline** — a hand-written webmanifest, five PNG icons and a generated service
     worker let Chrome, Edge and Opera install the page as a desktop app and open it with no network.
     The precache holds the whole build, all four lazy panels and the woff2 subsets, which is 26 files
-    and about 790 KiB. A newer build waits in the worker until the strip above the workbench offers
-    the reload: a tool that writes bytes to a keyboard must not swap its own code mid-session. No
-    bytes changed, so there is no new hardware test.
+    and about 790 KiB. Two screenshots from a real window feed the install dialog and stay out of
+    the cache. A newer build waits in the worker until the strip above the workbench offers the
+    reload: a tool that writes bytes to a keyboard must not swap its own code mid-session. No bytes
+    changed, so there is no new hardware test.
 
 ## 4. Lessons that cost time
 
