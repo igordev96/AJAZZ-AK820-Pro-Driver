@@ -113,7 +113,9 @@ npm run dev
 ```
 
 Open <http://localhost:5173/>, click **Connect keyboard** and choose the AK820 in the browser
-chooser. Pick a key, choose a function, then click **Upload changes**.
+chooser. A browser that has already allowed the keyboard shows **Reconnect** instead, and opens it
+without the chooser. The caret beside it opens **Choose another keyboard**, which brings the chooser
+back. Pick a key, choose a function, then click **Upload changes**.
 
 To try the production build:
 
@@ -130,6 +132,9 @@ The top layer is the table the keyboard types without Fn. Click a key, search fo
 under **Sends**, then upload. Every wired upload sends the full 576-byte table because the firmware
 has no single-key command; over the 2.4 GHz link the page sends one patch per changed key instead.
 Click the selected key again to clear the inspector.
+
+The bar under the board lists the keys the next upload will carry, one line each, so you can read
+what is about to go to the keyboard before you press **Upload changes**.
 
 The Fn layer tab edits what each key does while Fn is held. Only the keys you change are written;
 every other slot stays zero, which means the firmware handles that combination. Six keys marked

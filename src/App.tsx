@@ -14,7 +14,7 @@ import { UpdateNotice } from '@/components/update-notice';
 import { AppHeader } from '@/features/device/AppHeader';
 import { ViewTabs, type View } from '@/features/device/ViewTabs';
 import { updateSettings, useSettings } from '@/features/settings/useSettings';
-import { useDevice } from '@/features/device/useDevice';
+import { useDevice, type ConnectOptions } from '@/features/device/useDevice';
 import { KeyInspector } from '@/features/editor/KeyInspector';
 import { KeymapBoard } from '@/features/editor/KeymapBoard';
 import { LayerTabs } from '@/features/editor/LayerTabs';
@@ -31,7 +31,7 @@ import {
   createInitialState,
   editorReducer,
   getActiveRows,
-  getPendingCount,
+  getPendingRows,
   getSelectedRow,
   loadLayers,
   pendingKeyPatches,
@@ -161,7 +161,8 @@ export function App() {
 
   const rows = getActiveRows(state);
   const selectedRow = getSelectedRow(state);
-  const pendingCount = getPendingCount(state);
+  const pendingRows = getPendingRows(state);
+  const pendingCount = pendingRows.length;
   const connected = device.status === 'connected' && device.link !== null;
   const locked = selectedRow ? state.layer === 'fn' && FN_LOCKED.has(selectedRow.idx) : false;
 
@@ -652,27 +653,33 @@ export function App() {
     setBusy(value);
   }, []);
 
-  const handleConnect = useCallback(async () => {
-    const outcome = await device.connect();
+  const runConnect = useCallback(
+    async (options?: ConnectOptions) => {
+      const outcome = await device.connect(options);
 
-    if (outcome.status === 'connected') {
-      if (outcome.link === 'wireless') {
-        notify.ok(`${outcome.name} connected over 2.4 GHz.`);
-      } else if (outcome.link === 'usb') {
-        notify.ok(`${outcome.name} connected over USB.`);
+      if (outcome.status === 'connected') {
+        if (outcome.link === 'wireless') {
+          notify.ok(`${outcome.name} connected over 2.4 GHz.`);
+        } else if (outcome.link === 'usb') {
+          notify.ok(`${outcome.name} connected over USB.`);
+        } else {
+          notify.warn('The device opened, but neither interface was found.');
+        }
+      } else if (outcome.status === 'cancelled') {
+        notify.info('No keyboard selected.');
       } else {
-        notify.warn('The device opened, but neither interface was found.');
+        notify.err(outcome.message);
       }
-    } else if (outcome.status === 'cancelled') {
-      notify.info('No keyboard selected.');
-    } else {
-      notify.err(outcome.message);
-    }
 
-    // The drawer is only reachable while connected, so warm its chunk now and
-    // the first click opens it without a fetch.
-    void import('@/features/advanced/AdvancedDrawer').catch(() => {});
-  }, [device]);
+      // The drawer is only reachable while connected, so warm its chunk now and
+      // the first click opens it without a fetch.
+      void import('@/features/advanced/AdvancedDrawer').catch(() => {});
+    },
+    [device],
+  );
+
+  const handleConnect = useCallback(() => runConnect(), [runConnect]);
+  const handleChooseAnother = useCallback(() => runConnect({ picker: true }), [runConnect]);
 
   const handleDisconnect = useCallback(async () => {
     await device.disconnect();
@@ -741,9 +748,11 @@ export function App() {
       <AppHeader
         device={device}
         supported={device.supported}
+        canReconnect={device.canReconnect}
         busy={busy}
         logOpen={logOpen}
         onConnect={handleConnect}
+        onChooseAnother={handleChooseAnother}
         onDisconnect={handleDisconnect}
         onAdvanced={handleOpenAdvanced}
         advancedDisabled={!connected || busy}
@@ -800,7 +809,7 @@ export function App() {
                 </Tabs>
                 <PendingBar
                   layer={state.layer}
-                  pendingCount={pendingCount}
+                  pending={pendingRows}
                   connected={connected}
                   busy={busy}
                   confirming={confirming}

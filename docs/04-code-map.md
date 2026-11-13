@@ -63,6 +63,14 @@ chooser, open and close, and the disconnect listener. Uploads on the wired link 
 `TransferService`; the receiver's records go through `WirelessClient`. The advanced drawer calls the
 probe services. All of them receive a transport, and writes happen only in event handlers.
 
+`classifyGranted` in `src/lib/hid/webhid.ts` decides whether a click can skip the chooser. A click
+reads `navigator.hid.getDevices()`, which returns only devices this origin already has, and reopens
+the board when exactly one link is granted. A second keyboard, or a cable and a receiver both
+granted, goes to the chooser, because picking one would be a guess. The page reads the list on idle
+and on the HID connect and disconnect events to label the button **Reconnect**; that probe never
+opens a device. The caret beside **Reconnect** opens **Choose another keyboard**, which asks for the
+chooser on purpose, so a granted cable does not shut the dongle out.
+
 `src/lib/profile` is framework-free: it builds and validates the JSON bundle from the editor drafts
 and the settings, and knows nothing about files. `downloadText` in `src/lib/download.ts` is the only
 DOM touch in that path. A profile carries drafts only, so importing one moves no `applied` value and
@@ -223,7 +231,10 @@ The inspector mirrors the board and is the only place that edits a usage. The `S
 searchable combobox grouped by the usage table, so a keyboard key, a media key or the Fn default
 is a few letters away instead of a scroll through 200 rows. Its raw field accepts a token like
 `0x04` or `c:0xE2`. The layer tabs switch between `top` and `fn`. The pending bar stages the
-upload, and the restore confirmation lives beside it. The log drawer keeps every transport line.
+upload and lists the keys it will carry, one `describePendingChange` line per row, capped at eight
+with a count for the rest. The list stays visible while disconnected, and it hides while the
+restore question is up. The restore confirmation lives beside it, and the log drawer keeps every
+transport line.
 
 `ViewTabs` switches the workbench between the board and the screen. The screen view keeps the same
 two-column grid: the 128 × 128 preview takes the board's place, and `ClockCard` takes the
@@ -312,13 +323,14 @@ app busy flag through `onBusyChange`.
 | `src/lib/editor/state.test.ts` | reducer, pending count, validation, map apply |
 | `src/lib/editor/persistence.test.ts` | one stored object, draft/applied, legacy migration |
 | `src/lib/editor/patches.test.ts` | per-key records sliced from the table, media, Fn, order |
+| `src/lib/editor/describe.test.ts` | one pending line: top, media, Fn, cleared override |
 | `src/lib/profile/profile.test.ts` | bundle round-trip, bad files, dropped rows, locked Fn keys |
 | `src/lib/hid/wireless.test.ts` | frame, checksum, record, interface choice, patches, handshake retry |
 | `src/features/log/LogPanel.test.tsx` | copy confirmation, refused clipboard, empty log |
 | `src/features/profile/ProfileMenu.test.tsx` | export, confirm step, broken file |
 | `src/features/device/DevicePanel.test.tsx` | link wording, apply, last send, receiver limits |
-| `src/features/device/useDevice.test.ts` | chooser, open, disconnect, receiver, no config interface |
-| `src/features/editor/*.test.tsx` | board, inspector, staging bar |
+| `src/features/device/useDevice.test.ts` | granted-link choice, chooser, open, disconnect, receiver, no config interface |
+| `src/features/editor/*.test.tsx` | board, inspector, staging bar and its pending list |
 | `src/features/advanced/AdvancedDrawer.test.tsx` | each tab, close paths, busy state |
 | `src/features/screen/ClockCard.test.tsx` | clock modes, validation, status, busy state |
 | `src/features/screen/DateTimePicker.test.tsx` | day and time selection, Now, close |

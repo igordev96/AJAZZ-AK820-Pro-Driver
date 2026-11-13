@@ -11,6 +11,7 @@ export {
 export type { LayerRows, StorageLike, StoredLayers } from './persistence';
 export { pendingKeyPatches } from './patches';
 export type { PendingPatch } from './patches';
+export { describePendingChange } from './describe';
 export {
   applyMapEntries,
   createInitialState,

@@ -1,10 +1,13 @@
 import { Button } from '@/components/ui/button';
-import type { Layer } from '@/lib/editor';
+import { describePendingChange, type EditorRow, type Layer } from '@/lib/editor';
 import { cn } from '@/lib/utils';
+
+/** Rows past this are counted instead of listed: a factory restore is 81. */
+const VISIBLE_LIMIT = 8;
 
 type PendingBarProps = {
   layer: Layer;
-  pendingCount: number;
+  pending: readonly EditorRow[];
   connected: boolean;
   busy: boolean;
   confirming: boolean;
@@ -16,7 +19,7 @@ type PendingBarProps = {
 
 export function PendingBar({
   layer,
-  pendingCount,
+  pending,
   connected,
   busy,
   confirming,
@@ -25,6 +28,7 @@ export function PendingBar({
   onConfirmRestore,
   onCancelRestore,
 }: PendingBarProps) {
+  const pendingCount = pending.length;
   const canWrite = connected && !busy;
   const restoreLabel = layer === 'fn' ? 'Clear all Fn overrides' : 'Restore factory map';
   const status = !connected
@@ -51,6 +55,29 @@ export function PendingBar({
             </Button>
           </div>
         </div>
+      ) : null}
+
+      {/* The keys this upload carries, not only how many there are. The bar
+          stays visible while disconnected so the list can be read first. */}
+      {pendingCount > 0 && !confirming ? (
+        <ul
+          aria-label="Changes to upload"
+          className="rounded-panel border border-line bg-surface/40 px-3 py-2"
+        >
+          {pending.slice(0, VISIBLE_LIMIT).map((row) => (
+            <li key={row.idx} className="flex min-w-0 items-baseline gap-2 py-0.5">
+              <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-brass" />
+              <span className="truncate font-mono text-[11px] text-ivory/90">
+                {describePendingChange(row, layer)}
+              </span>
+            </li>
+          ))}
+          {pendingCount > VISIBLE_LIMIT ? (
+            <li className="pt-1 pl-3.5 text-[11px] text-muted">
+              and {pendingCount - VISIBLE_LIMIT} more
+            </li>
+          ) : null}
+        </ul>
       ) : null}
 
       <div

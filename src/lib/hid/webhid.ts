@@ -1,5 +1,6 @@
 import { type CollectionReport, findConfigCollection, findScreenCollection } from './collections';
 import { CONFIG_USAGE, CONFIG_USAGE_PAGE, PRODUCT_IDS, VENDOR_ID } from './protocol';
+import { findWirelessCollection } from './wireless';
 
 export type WebHidReportInfo = CollectionReport;
 
@@ -37,7 +38,49 @@ export type WebHidDevice = {
 export type WebHid = {
   requestDevice(options: { filters: readonly WebHidFilter[] }): Promise<WebHidDevice[]>;
   getDevices(): Promise<WebHidDevice[]>;
+  /** Fires for devices this origin was already allowed to use. */
+  addEventListener?(type: 'connect' | 'disconnect', listener: () => void): void;
+  removeEventListener?(type: 'connect' | 'disconnect', listener: () => void): void;
 };
+
+/**
+ * What a click can do without the chooser. `getDevices` only returns devices
+ * this origin already has permission for, so a reopen is a permission this
+ * page holds, not a device it found on its own.
+ */
+export type GrantedChoice =
+  | {
+      readonly kind: 'reopen';
+      readonly link: 'usb' | 'wireless';
+      readonly devices: readonly WebHidDevice[];
+    }
+  | { readonly kind: 'chooser' };
+
+/**
+ * Reopen only when the answer is unambiguous. A second keyboard, or a cable
+ * and a receiver both granted, goes to the chooser: picking one would be a
+ * guess, and a guess writes to the wrong board.
+ */
+export function classifyGranted(devices: readonly WebHidDevice[]): GrantedChoice {
+  const granted = devices.filter(
+    (device) =>
+      device.vendorId === VENDOR_ID &&
+      (PRODUCT_IDS as readonly number[]).includes(device.productId),
+  );
+  const usb = granted.filter((device) => findConfigCollection(device) !== null);
+  const wireless = granted.filter((device) => findWirelessCollection(device) !== null);
+
+  if (usb.length > 1 || (usb.length > 0 && wireless.length > 0)) {
+    return { kind: 'chooser' };
+  }
+  if (usb.length === 1) {
+    return { kind: 'reopen', link: 'usb', devices: granted };
+  }
+  if (wireless.length > 0) {
+    return { kind: 'reopen', link: 'wireless', devices: granted };
+  }
+  return { kind: 'chooser' };
+}
 
 export function buildWebHidFilters(): WebHidFilter[] {
   const filters: WebHidFilter[] = [];

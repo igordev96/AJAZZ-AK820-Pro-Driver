@@ -31,8 +31,8 @@ export type {
   TransferStep,
 } from './transfer';
 export { buildTimePacket, formatClock, formatTimeInput, parseTimeInput } from './time';
-export { buildWebHidFilters, getWebHid, pickDevice } from './webhid';
-export type { WebHid, WebHidCollection, WebHidDevice, WebHidFilter } from './webhid';
+export { buildWebHidFilters, classifyGranted, getWebHid, pickDevice } from './webhid';
+export type { GrantedChoice, WebHid, WebHidCollection, WebHidDevice, WebHidFilter } from './webhid';
 export { diagnose } from './diagnostics';
 export type {
   DiagnoseOptions,

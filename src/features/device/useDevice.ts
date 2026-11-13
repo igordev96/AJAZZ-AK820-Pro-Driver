@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   findConfigCollection,
   findScreenCollection,
@@ -12,6 +12,7 @@ import {
 import type { LogFn } from '@/lib/hid/transfer';
 import {
   buildWebHidFilters,
+  classifyGranted,
   getWebHid,
   pickDevice,
   pickScreenDevice,
@@ -58,124 +59,188 @@ const initialState: DeviceState = {
 
 const hex = (value: number) => value.toString(16).toUpperCase().padStart(4, '0');
 
+/** A click opens the keyboard the page already has, or the chooser. */
+export type ConnectOptions = {
+  /** Skip the granted devices and always show the browser chooser. */
+  readonly picker?: boolean;
+};
+
 export function useDevice({ hid, log }: { hid?: WebHid; log?: LogFn } = {}) {
   const available = hid ?? getWebHid();
   const [state, setState] = useState<DeviceState>(initialState);
+  const [canReconnect, setCanReconnect] = useState(false);
 
-  const connect = useCallback(async (): Promise<ConnectOutcome> => {
-    if (!available) {
-      const message =
-        'WebHID is not available in this browser. Use Chrome, Edge or Opera on desktop.';
-      setState({ ...initialState, status: 'error', error: message });
-      log?.(message, 'err');
-      return { status: 'error', message };
-    }
+  // A read, never an open: the label may promise a reopen only while the
+  // permission is still there. Writes stay on the click.
+  useEffect(() => {
+    if (!available || state.status === 'connected') return;
+    let active = true;
 
-    setState({ ...initialState, status: 'connecting' });
-    log?.('requesting device…', 'dim');
+    const refresh = () => {
+      void available
+        .getDevices()
+        .then((granted) => {
+          if (active) setCanReconnect(classifyGranted(granted).kind === 'reopen');
+        })
+        .catch(() => {
+          if (active) setCanReconnect(false);
+        });
+    };
 
-    try {
-      const devices = await available.requestDevice({ filters: buildWebHidFilters() });
-      const configDevice =
-        devices.find((item) => findConfigCollection({ collections: item.collections })) ?? null;
-      const wirelessDevice = configDevice ? null : findWirelessInterface(devices);
-      const device = configDevice ?? wirelessDevice ?? pickDevice(devices);
-      const screenCandidate = pickScreenDevice(devices);
+    refresh();
+    available.addEventListener?.('connect', refresh);
+    available.addEventListener?.('disconnect', refresh);
 
-      if (!device) {
-        setState(initialState);
-        log?.('no device selected', 'warn');
-        return { status: 'cancelled' };
+    return () => {
+      active = false;
+      available.removeEventListener?.('connect', refresh);
+      available.removeEventListener?.('disconnect', refresh);
+    };
+  }, [available, state.status]);
+
+  const connect = useCallback(
+    async (options: ConnectOptions = {}): Promise<ConnectOutcome> => {
+      if (!available) {
+        const message =
+          'WebHID is not available in this browser. Use Chrome, Edge or Opera on desktop.';
+        setState({ ...initialState, status: 'error', error: message });
+        log?.(message, 'err');
+        return { status: 'error', message };
       }
 
-      log?.(`interfaces returned: ${devices.length}`, 'dim');
-      for (const [index, item] of devices.entries()) {
-        const pages = flattenCollections(item.collections).map(
-          ({ collection }) => `0x${hex(collection.usagePage)}/0x${hex(collection.usage)}`,
-        );
-        log?.(`  [${index}] ${pages.join('  ') || 'no collections'}`, 'dim');
-      }
+      const openChooser = () => {
+        log?.('requesting device…', 'dim');
+        return available.requestDevice({ filters: buildWebHidFilters() });
+      };
 
-      await device.open();
-
-      let screenDevice: WebHidDevice | null = null;
-      let screenFound = false;
-      if (screenCandidate === device) {
-        screenDevice = device;
-        screenFound = Boolean(findScreenCollection({ collections: device.collections }));
-      } else if (screenCandidate) {
+      const reconnectOrChoose = async (): Promise<readonly WebHidDevice[]> => {
+        let granted: readonly WebHidDevice[];
         try {
-          await screenCandidate.open();
-          screenDevice = screenCandidate;
-          screenFound = true;
+          granted = await available.getDevices();
         } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          log?.(`could not list granted devices: ${message}. Opening the chooser.`, 'warn');
+          return openChooser();
+        }
+
+        const choice = classifyGranted(granted);
+        if (choice.kind === 'reopen') {
+          log?.('reopening a previously granted keyboard', 'dim');
+          return choice.devices;
+        }
+        return openChooser();
+      };
+
+      setState({ ...initialState, status: 'connecting' });
+
+      try {
+        const devices = options.picker ? await openChooser() : await reconnectOrChoose();
+        const configDevice =
+          devices.find((item) => findConfigCollection({ collections: item.collections })) ?? null;
+        const wirelessDevice = configDevice ? null : findWirelessInterface(devices);
+        const device = configDevice ?? wirelessDevice ?? pickDevice(devices);
+        const screenCandidate = pickScreenDevice(devices);
+
+        if (!device) {
+          setState(initialState);
+          log?.('no device selected', 'warn');
+          return { status: 'cancelled' };
+        }
+
+        log?.(`interfaces returned: ${devices.length}`, 'dim');
+        for (const [index, item] of devices.entries()) {
+          const pages = flattenCollections(item.collections).map(
+            ({ collection }) => `0x${hex(collection.usagePage)}/0x${hex(collection.usage)}`,
+          );
+          log?.(`  [${index}] ${pages.join('  ') || 'no collections'}`, 'dim');
+        }
+
+        await device.open();
+
+        let screenDevice: WebHidDevice | null = null;
+        let screenFound = false;
+        if (screenCandidate === device) {
+          screenDevice = device;
+          screenFound = Boolean(findScreenCollection({ collections: device.collections }));
+        } else if (screenCandidate) {
+          try {
+            await screenCandidate.open();
+            screenDevice = screenCandidate;
+            screenFound = true;
+          } catch (error) {
+            log?.(
+              `screen interface failed to open: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+              'warn',
+            );
+          }
+        }
+
+        const configFound = Boolean(findConfigCollection({ collections: device.collections }));
+        const wirelessCollection = configFound
+          ? null
+          : findWirelessCollection({ collections: device.collections });
+        const link: DeviceLink | null = configFound
+          ? 'usb'
+          : wirelessCollection
+            ? 'wireless'
+            : null;
+
+        const handleDisconnect = () => {
+          log?.('keyboard disconnected', 'warn');
+          setState(initialState);
+        };
+        device.addEventListener('disconnect', handleDisconnect);
+        if (screenDevice && screenDevice !== device) {
+          screenDevice.addEventListener('disconnect', handleDisconnect);
+        }
+
+        setState({
+          status: 'connected',
+          device,
+          screenDevice,
+          name: device.productName ?? 'AK820',
+          vendorId: device.vendorId,
+          productId: device.productId,
+          link,
+          configFound,
+          screenFound,
+          error: null,
+        });
+
+        log?.(
+          `selected ${device.productName ?? 'AK820'} ${hex(device.vendorId)}:${hex(device.productId)}`,
+          'ok',
+        );
+        log?.('device opened', 'ok');
+        if (link === 'wireless') {
           log?.(
-            `screen interface failed to open: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
+            `2.4 GHz link: output reports of ${wirelessCollection ? wirelessOutputBytes(wirelessCollection) : 0} bytes. Key changes go out unconfirmed and this link has no screen channel.`,
             'warn',
           );
+        } else if (link === null) {
+          log?.(
+            'config interface 0xFF13/0x0001 not found. Use USB mode and close the vendor app.',
+            'err',
+          );
         }
+        // Over the receiver the missing screen is the rule, not a fault, so it
+        // only deserves a warning on a link that should have offered one.
+        if (!screenFound && link !== 'wireless') {
+          log?.('screen interface 0xFF68/0x0061 not found. The image card stays disabled.', 'warn');
+        }
+
+        return { status: 'connected', name: device.productName ?? 'AK820', link };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setState({ ...initialState, status: 'error', error: message });
+        log?.(`connection failed: ${message}`, 'err');
+        return { status: 'error', message };
       }
-
-      const configFound = Boolean(findConfigCollection({ collections: device.collections }));
-      const wirelessCollection = configFound
-        ? null
-        : findWirelessCollection({ collections: device.collections });
-      const link: DeviceLink | null = configFound ? 'usb' : wirelessCollection ? 'wireless' : null;
-
-      const handleDisconnect = () => {
-        log?.('keyboard disconnected', 'warn');
-        setState(initialState);
-      };
-      device.addEventListener('disconnect', handleDisconnect);
-      if (screenDevice && screenDevice !== device) {
-        screenDevice.addEventListener('disconnect', handleDisconnect);
-      }
-
-      setState({
-        status: 'connected',
-        device,
-        screenDevice,
-        name: device.productName ?? 'AK820',
-        vendorId: device.vendorId,
-        productId: device.productId,
-        link,
-        configFound,
-        screenFound,
-        error: null,
-      });
-
-      log?.(
-        `selected ${device.productName ?? 'AK820'} ${hex(device.vendorId)}:${hex(device.productId)}`,
-        'ok',
-      );
-      log?.('device opened', 'ok');
-      if (link === 'wireless') {
-        log?.(
-          `2.4 GHz link: output reports of ${wirelessCollection ? wirelessOutputBytes(wirelessCollection) : 0} bytes. Key changes go out unconfirmed and this link has no screen channel.`,
-          'warn',
-        );
-      } else if (link === null) {
-        log?.(
-          'config interface 0xFF13/0x0001 not found. Use USB mode and close the vendor app.',
-          'err',
-        );
-      }
-      // Over the receiver the missing screen is the rule, not a fault, so it
-      // only deserves a warning on a link that should have offered one.
-      if (!screenFound && link !== 'wireless') {
-        log?.('screen interface 0xFF68/0x0061 not found. The image card stays disabled.', 'warn');
-      }
-
-      return { status: 'connected', name: device.productName ?? 'AK820', link };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setState({ ...initialState, status: 'error', error: message });
-      log?.(`connection failed: ${message}`, 'err');
-      return { status: 'error', message };
-    }
-  }, [available, log]);
+    },
+    [available, log],
+  );
 
   const disconnect = useCallback(async () => {
     const device = state.device;
@@ -206,6 +271,7 @@ export function useDevice({ hid, log }: { hid?: WebHid; log?: LogFn } = {}) {
   return {
     ...state,
     supported: Boolean(available),
+    canReconnect,
     connect,
     disconnect,
   };

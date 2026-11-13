@@ -1,5 +1,7 @@
-import { Settings2, Terminal, Unplug, Usb } from 'lucide-react';
+import { ChevronDown, Terminal, Settings2, Unplug, Usb } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ProfileMenu, type ProfileMenuProps } from '@/features/profile/ProfileMenu';
 import { cn } from '@/lib/utils';
 import type { DeviceState } from './useDevice';
@@ -7,9 +9,11 @@ import type { DeviceState } from './useDevice';
 type AppHeaderProps = {
   device: DeviceState;
   supported: boolean;
+  canReconnect: boolean;
   busy: boolean;
   logOpen: boolean;
   onConnect: () => void;
+  onChooseAnother: () => void;
   onDisconnect: () => void;
   onAdvanced: () => void;
   advancedDisabled: boolean;
@@ -24,9 +28,11 @@ const hex = (value: number) => value.toString(16).toUpperCase().padStart(4, '0')
 export function AppHeader({
   device,
   supported,
+  canReconnect,
   busy,
   logOpen,
   onConnect,
+  onChooseAnother,
   onDisconnect,
   onAdvanced,
   advancedDisabled,
@@ -35,6 +41,7 @@ export function AppHeader({
   onExportProfile,
   onImportProfile,
 }: AppHeaderProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const connected = device.status === 'connected';
   const label =
     device.status === 'connected'
@@ -89,14 +96,53 @@ export function AppHeader({
               Disconnect
             </Button>
           ) : (
-            <Button
-              size="sm"
-              disabled={busy || !supported || device.status === 'connecting'}
-              onClick={onConnect}
-            >
-              <Usb aria-hidden="true" />
-              {device.status === 'connecting' ? 'Connecting…' : 'Connect keyboard'}
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                disabled={busy || !supported || device.status === 'connecting'}
+                onClick={onConnect}
+              >
+                <Usb aria-hidden="true" />
+                {device.status === 'connecting'
+                  ? 'Connecting…'
+                  : canReconnect
+                    ? 'Reconnect'
+                    : 'Connect keyboard'}
+              </Button>
+              {canReconnect ? (
+                <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Other keyboards"
+                      className="px-1.5"
+                      disabled={busy || !supported || device.status === 'connecting'}
+                    >
+                      <ChevronDown aria-hidden="true" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-64">
+                    <p className="text-xs leading-relaxed text-muted">
+                      This browser already allowed a keyboard, so{' '}
+                      <strong className="font-medium text-ivory">Reconnect</strong> opens it without
+                      the chooser.
+                    </p>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="mt-3"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onChooseAnother();
+                      }}
+                    >
+                      Choose another keyboard
+                    </Button>
+                  </PopoverContent>
+                </Popover>
+              ) : null}
+            </div>
           )}
 
           <ProfileMenu
