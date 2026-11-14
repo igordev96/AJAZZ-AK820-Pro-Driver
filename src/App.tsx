@@ -168,6 +168,14 @@ export function App() {
     [device.device, device.link, log],
   );
 
+  // The receiver stops taking records after a quiet spell, so beat on a timer
+  // while the link is open, as the vendor app does.
+  useEffect(() => {
+    if (!wireless) return;
+    wireless.startBeating();
+    return () => wireless.stopBeating();
+  }, [wireless]);
+
   const rows = getActiveRows(state);
   const selectedRow = getSelectedRow(state);
   const pendingRows = getPendingRows(state);

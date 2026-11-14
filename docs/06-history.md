@@ -103,6 +103,10 @@ WebHID won because it is the only option with zero install and a stable API for 
     fifteen. A keep-alive before each write fixed it, and Test 26 confirmed paint, fill, clear,
     brightness, a power cycle and the first Apply after waking. A sleeping keyboard still needs a
     key press before the page can reach it.
+20. **The quiet window** - a beat on demand was still too late. An apply 9.3 s after the last beat
+    was ignored, and a beat 10 ms before the trigger could not wake a receiver quiet for half a
+    minute. The page now beats every ten seconds while connected and settles 500 ms after an
+    on-demand beat. Test 27.
 
 ## 4. Lessons that cost time
 
@@ -119,8 +123,8 @@ WebHID won because it is the only option with zero install and a stable API for 
   "follow the global colour" flag and bytes 2-3 as a 16-bit colour. Painting pure red, green, blue
   and white showed it was simply red, green and blue. One controlled run beat an hour of reasoning.
 * **A quiet link is not a working link.** The receiver takes records for a while and then stops,
-  and nothing says so. The vendor's heartbeat every fifteen seconds is the only clue, which is why
-  the page beats before a write when the link has been idle.
+  and nothing says so. A heartbeat 10 ms before the record is too late; the link needs steady beats,
+  like the vendor's every fifteen seconds, or a timer of its own.
 * **The vendor's DB is the source of truth for its own UI.** Empty `t_key_macro_data` proved the
   device had never been written by the vendor app, which made the first Fn write safe.
 * **A stray byte before `<!DOCTYPE>` is not just a parse warning.** The page spent its whole life

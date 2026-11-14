@@ -338,10 +338,12 @@ describe('WirelessClient keep-alive', () => {
   it('beats again before a record when the link has been quiet', async () => {
     const recorder = sent();
     let now = 0;
+    const slept: number[] = [];
     const clock = {
       now: () => now,
       sleep: async (ms: number) => {
         now += ms;
+        slept.push(ms);
       },
     };
     const client = new WirelessClient(recorder.device, () => {}, clock);
@@ -356,6 +358,7 @@ describe('WirelessClient keep-alive', () => {
       WIRELESS_COMMANDS.heartbeat,
       WIRELESS_COMMANDS.light,
     ]);
+    expect(slept).toEqual([500]);
   });
 
   it('does not beat again inside the window', async () => {
@@ -378,5 +381,22 @@ describe('WirelessClient keep-alive', () => {
       WIRELESS_COMMANDS.heartbeat,
       WIRELESS_COMMANDS.light,
     ]);
+  });
+
+  it('beats on a timer while the link is open', async () => {
+    const recorder = sent();
+    const client = new WirelessClient(recorder.device);
+
+    client.startBeating(5);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    client.stopBeating();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    const beats = recorder.frames.filter((frame) => frame[0] === WIRELESS_COMMANDS.heartbeat);
+    expect(beats.length).toBeGreaterThanOrEqual(2);
+
+    const after = recorder.frames.length;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    expect(recorder.frames.length).toBe(after);
   });
 });

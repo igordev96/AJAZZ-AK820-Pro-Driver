@@ -45,7 +45,7 @@ The app is a Vite, React and TypeScript rewrite of the v1 single-file app, and t
 sends are unchanged. Each feature that writes to the board has been run on an AK820 Pro: the key
 table and both layers, the restore actions, the screen clock and animation channel, the light with
 its 20 effects and per-key colours on both links, the five device settings, and the 2.4 GHz receiver
-with its records, key patches and power-cycle behaviour. Tests 9 to 26 cover the v2 build, and
+with its records, key patches and power-cycle behaviour. Tests 9 to 27 cover the v2 build, and
 [docs/02-hardware-tests.md](docs/02-hardware-tests.md) records each run, its date and what the board
 did.
 

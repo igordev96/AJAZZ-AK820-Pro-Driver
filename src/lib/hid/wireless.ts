@@ -145,14 +145,33 @@ const KEY_GAP_MS = 15;
 /** A `0x14` frame carries at most 28 payload bytes, four of the 32 going to the header and checksum. */
 export const PER_KEY_FRAME_BYTES = WIRELESS_FRAME_SIZE - 4;
 
-/** The captured frames were about 25 ms apart; 20 keeps the run near half a second. */
-export const PER_KEY_FRAME_GAP_MS = 20;
+/** The captured frames were about 25 ms apart once the board was in per-key mode. */
+export const PER_KEY_FRAME_GAP_MS = 25;
 
-/** The vendor app beats a heartbeat about every fifteen seconds to keep the link awake. */
-export const WIRELESS_HEARTBEAT_MS = 12_000;
+/**
+ * The vendor app beats about every fifteen seconds, but the receiver's useful
+ * window is shorter: a write 9.3 s after the last heartbeat was ignored
+ * (`dongle-perkey-colour.log`, 14 Nov 2026) while writes at 3-4 s landed. Beat
+ * at four, which costs one 32-byte frame.
+ */
+export const WIRELESS_HEARTBEAT_MS = 4_000;
 
-/** In several captures the first table frame follows the mode record by about 320 ms. */
-export const PER_KEY_SWITCH_PAUSE_MS = 300;
+/** The vendor beats every fifteen seconds; ten keeps a margin, even in a throttled tab. */
+export const WIRELESS_BEAT_INTERVAL_MS = 10_000;
+
+/**
+ * A heartbeat followed 10 ms later by a record does not wake a receiver that
+ * has been quiet for half a minute: the 02:03 write in the 14 Nov log was
+ * ignored while one 7 s after activity landed. Leave it time to come up.
+ */
+export const WIRELESS_HEARTBEAT_SETTLE_MS = 500;
+
+/**
+ * After the mode record the vendor's first frames were 320-327 ms apart, and
+ * 24-25 ms when the board was already in per-key mode. 500 ms clears the
+ * switch with room, because 300 was close enough to drop the first table.
+ */
+export const PER_KEY_SWITCH_PAUSE_MS = 500;
 
 /**
  * Sends the records the receiver applies without a reply. Key patches are
@@ -161,6 +180,7 @@ export const PER_KEY_SWITCH_PAUSE_MS = 300;
 export class WirelessClient {
   private ready: Promise<void> | null = null;
   private lastBeat = Number.NEGATIVE_INFINITY;
+  private timer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private readonly device: WirelessDevice,
@@ -188,11 +208,36 @@ export class WirelessClient {
     await this.ensureReady();
   }
 
-  /** The receiver stops taking records after a quiet spell; beat again if it has been a while. */
-  private async keepAlive(): Promise<void> {
-    if (this.clock.now() - this.lastBeat < WIRELESS_HEARTBEAT_MS) return;
+  /** One heartbeat, whatever the clock says. */
+  async beat(): Promise<void> {
+    await this.ensureReady();
     await this.write(WIRELESS_COMMANDS.heartbeat, Uint8Array.from([0x00]));
     this.lastBeat = this.clock.now();
+  }
+
+  /**
+   * Keep the link awake for as long as the page is connected. The receiver
+   * stops taking records after a quiet spell, and a beat on demand is not
+   * enough when it has already gone quiet.
+   */
+  startBeating(intervalMs: number = WIRELESS_BEAT_INTERVAL_MS): void {
+    this.stopBeating();
+    this.timer = setInterval(() => {
+      void this.beat().catch(() => {});
+    }, intervalMs);
+  }
+
+  stopBeating(): void {
+    if (this.timer === null) return;
+    clearInterval(this.timer);
+    this.timer = null;
+  }
+
+  /** True when a beat was due and has just been sent. */
+  private async keepAlive(): Promise<boolean> {
+    if (this.clock.now() - this.lastBeat < WIRELESS_HEARTBEAT_MS) return false;
+    await this.beat();
+    return true;
   }
 
   async sendLight(record: Uint8Array): Promise<void> {
@@ -218,7 +263,7 @@ export class WirelessClient {
     if (patches.length === 0) return 0;
 
     await this.ensureReady();
-    await this.keepAlive();
+    if (await this.keepAlive()) await this.clock.sleep(WIRELESS_HEARTBEAT_SETTLE_MS);
 
     const command = layer === 'fn' ? WIRELESS_COMMANDS.fn : WIRELESS_COMMANDS.top;
     let sent = 0;
@@ -280,7 +325,7 @@ export class WirelessClient {
 
   private async send(command: number, payload?: Uint8Array): Promise<void> {
     await this.ensureReady();
-    await this.keepAlive();
+    if (await this.keepAlive()) await this.clock.sleep(WIRELESS_HEARTBEAT_SETTLE_MS);
     await this.write(command, payload);
   }
   private async write(command: number, payload?: Uint8Array, index = 0): Promise<void> {

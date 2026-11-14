@@ -568,9 +568,10 @@ directly. A key patch carries the same 4-byte record as the wired table (`02 <mo
   page sent init and a heartbeat first, and applied immediately once it did.
 - **The link goes quiet.** The vendor app never leaves more than fifteen seconds between heartbeats,
   and a page that wrote thirty seconds after connecting had its records ignored: the same frames
-  that worked earlier did nothing. `WirelessClient` now beats again before a write when more than
-  twelve seconds have passed. A keyboard that has gone to sleep still needs a key press; output
-  reports do not wake it.
+  that worked earlier did nothing. `WirelessClient` beats on a ten-second timer while connected,
+  and again before a write when more than four seconds have passed. A beat is followed by 500 ms
+  before the record: one sent 10 ms before a record failed to wake a receiver quiet for half a
+  minute. A keyboard that has gone to sleep still needs a key press; output reports do not wake it.
 - **Two shortcut blocks do not exist on this link.** The Windows key block works from the page, and
   so do the sleep time and the response level (Test 24). Alt+Tab (byte 2) and Alt+F4 (byte 3) go out
   at the offsets the wired record uses, the vendor's own dongle capture puts them there too

@@ -776,3 +776,33 @@ leaves more than fifteen seconds between heartbeats. A sleeping keyboard is a se
 output reports do not wake it, so the page now says to press a key first.
 
 Not tested: the sleep interval itself, and a second receiver or firmware.
+
+*Test 27 later showed that a heartbeat on demand was not enough: the link needs steady beats.*
+
+---
+
+## Test 27 — the receiver's quiet window (14 Nov 2026)
+
+Build: the working tree with the ten-second beat timer and the 500 ms settle, dev server on
+`http://localhost:5173`, Chrome on Windows, the keyboard in 2.4 GHz mode.
+
+Test 26 left the page beating before a write when the last heartbeat was older than twelve seconds.
+The next run showed that was too late: an apply 9.3 s after the last beat was ignored, while applies
+3-4 s after one landed. Lowering the threshold to four seconds was still not enough. At 02:03:41 in
+`dongle-perkey-colour.log` the page sent `20 01 00` and then the trigger 10 ms later, after thirty
+seconds of silence, and the board did nothing. Changing the brightness (a different trigger) and
+applying seven seconds later worked.
+
+So a beat on demand cannot wake a receiver that has already gone quiet. The page now beats on a
+ten-second timer for as long as the link is open, as the vendor app does, and waits 500 ms after an
+on-demand beat before the record that follows it.
+
+With that, the user left the page idle for thirty seconds or more and applied new keys; every first
+apply landed, with the heartbeats visible in the log every ten seconds. The effect → Per-key
+sequence also worked without a second try.
+
+**Found.** The receiver ignores records after a quiet spell, and a heartbeat 10 ms before a record
+does not bring it back. Steady beats, not a beat at send time, keep the link usable.
+
+Not tested: how long the receiver tolerates silence, and whether a throttled background tab, where
+the timer runs slowly, can still miss.

@@ -149,10 +149,11 @@ the caller has to know which commit failed. The table and the trigger come from
 
 `WirelessClient.sendPerKey` sends the same two pieces over the receiver: the trigger through the
 light command, then 21 frames of command `0x14`, 28 bytes each and 16 in the last, with the frame
-number in the header, a 300 ms pause after the trigger and 20 ms between frames. The client also
-beats a heartbeat before a write when the last one is older than twelve seconds, because the
-receiver ignores records after a quiet spell. The receiver confirms nothing, so the panel moves
-`sent` when the frames are written.
+number in the header, a 500 ms pause after the trigger and 25 ms between frames. The client beats
+on a ten-second timer while the App is connected, and again before a write when the last one is
+older than four seconds, with a 500 ms settle after that beat: the receiver ignores records after a
+quiet spell, and a beat sent 10 ms before a record does not wake it. The receiver confirms nothing,
+so the panel moves `sent` when the frames are written.
 
 `TransferService` owns the transfer lock. A second `sendTable` or `sendTime` call returns
 `{ busy: true }` instead of interleaving. `App` also keeps one busy flag for uploads, clock writes
