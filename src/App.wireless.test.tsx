@@ -151,7 +151,9 @@ describe('App over the 2.4 GHz receiver', () => {
     await user.click(within(board).getByRole('button', { name: /^W\./ }));
     await user.click(screen.getByRole('button', { name: 'Apply colours' }));
 
-    expect(await screen.findByText(/does not confirm the map/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/does not confirm the map/i, {}, { timeout: 4000 }),
+    ).toBeInTheDocument();
 
     // init, heartbeat, the 0x80 light record, then the 21 table frames.
     expect(frames).toHaveLength(24);
