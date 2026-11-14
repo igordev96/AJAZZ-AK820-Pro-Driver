@@ -86,9 +86,11 @@ at all. The state carries `link: 'usb' | 'wireless'` and the app branches on it:
 `TransferService`, wireless through `WirelessClient` in `src/lib/hid/wireless.ts`, which sends
 33-byte output reports with a checksum and the vendor's init and heartbeat first.
 
-Over wireless the same records go out: light, clock and device settings as one frame each, and key
-changes as one patch per key, taken from `pendingKeyPatches` at `idx * 4` of the table the wired
-path would have sent, so the encoder stays the single source. Patches are paced 15 ms apart and
+Over wireless the same records go out: light, clock, per-key colours and device settings as one
+frame each, and key changes as one patch per key, taken from `pendingKeyPatches` at `idx * 4` of the
+table the wired path would have sent, so the encoder stays the single source. Per-key colours are
+the exception to the one-frame shape: the 576-byte table goes out as 21 frames of 28 bytes under
+`0x14`, after the `0x80` record through the light command. Patches are paced 15 ms apart and
 silent, so `applied` moves when they are sent rather than when the keyboard replies. A whole-layer
 restore is 81 patches in a single run; Test 20 sent that burst and the map came back correct. The
 screen has no channel on this link, so the animation card is disabled and tagged USB only, and the
@@ -144,6 +146,13 @@ mode-`0x80` light record first, then the 576-byte table under `04 23` with nine 
 command. A refused mode switch stops before the table. It returns the two sequences apart, because
 the caller has to know which commit failed. The table and the trigger come from
 `src/lib/lighting/perKey.ts`; the layout is in `docs/01-protocol.md` §11.
+
+`WirelessClient.sendPerKey` sends the same two pieces over the receiver: the trigger through the
+light command, then 21 frames of command `0x14`, 28 bytes each and 16 in the last, with the frame
+number in the header, a 300 ms pause after the trigger and 20 ms between frames. The client also
+beats a heartbeat before a write when the last one is older than twelve seconds, because the
+receiver ignores records after a quiet spell. The receiver confirms nothing, so the panel moves
+`sent` when the frames are written.
 
 `TransferService` owns the transfer lock. A second `sendTable` or `sendTime` call returns
 `{ busy: true }` instead of interleaving. `App` also keeps one busy flag for uploads, clock writes
@@ -274,8 +283,7 @@ swatches, brightness, Fill all, Clear all, and one Apply for the whole 576-byte 
 works with a click, a drag, or Space and Backspace on the focused key. The draft and the map last
 sent both live in the settings store, so a reload still shows which keys are unsent. A key without
 a colour is off while the board runs the per-key map, which is why Clear all means every key off.
-The tab is disabled and badged USB only on the receiver, because no captured frame carries the
-table.
+The tab works on both links; over the receiver the confirmation says the map is not confirmed.
 
 The **Device** view is two columns. The left one is the vendor's response-time table, all three
 links, with the selected level in ivory so the numbers can be compared before choosing. The right
@@ -343,7 +351,7 @@ app busy flag through `onBusyChange`.
 | `src/lib/editor/patches.test.ts` | per-key records sliced from the table, media, Fn, order |
 | `src/lib/editor/describe.test.ts` | one pending line: top, media, Fn, cleared override |
 | `src/lib/profile/profile.test.ts` | bundle round-trip, bad files, dropped rows, locked Fn keys |
-| `src/lib/hid/wireless.test.ts` | frame, checksum, record, interface choice, patches, handshake retry |
+| `src/lib/hid/wireless.test.ts` | frame, checksum, record, interface choice, patches, per-key frames, handshake retry |
 | `src/features/log/LogPanel.test.tsx` | copy confirmation, refused clipboard, empty log |
 | `src/features/profile/ProfileMenu.test.tsx` | export, confirm step, broken file |
 | `src/features/device/DevicePanel.test.tsx` | link wording, apply, last send, receiver limits |
@@ -415,8 +423,9 @@ the app tests wait with `findBy` after switching views.
     at 574-575. All 81 keys are written, with black for a key that has no colour; a key without a
     colour is off, there is no follow-the-global flag.
 18. **The per-key mode switch comes first.** `04 13` with mode `0x80` and brightness at byte 9, then
-    the table under `04 23`. A refused mode switch stops before the table. The receiver has no
-    proven path for the table, so the control is USB only.
+    the table under `04 23`. A refused mode switch stops before the table. Over the receiver the
+    same two pieces go out as a light frame and 21 `0x14` frames; nothing confirms them, so `sent`
+    moves on the write.
 
 ## 9. Common changes
 

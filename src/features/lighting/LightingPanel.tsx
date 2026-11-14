@@ -37,7 +37,6 @@ export type LightingValues = LightSettings;
 type LightingPanelProps = {
   connected: boolean;
   busy: boolean;
-  wireless: boolean;
   status: LightingStatus;
   perKeyStatus: PerKeyStatus;
   onApply: (values: LightingValues) => void;
@@ -52,7 +51,6 @@ const defaultFor = (mode: number) => ({
 export function LightingPanel({
   connected,
   busy,
-  wireless,
   status,
   perKeyStatus,
   onApply,
@@ -84,7 +82,7 @@ export function LightingPanel({
         label="Light mode"
         items={[
           { id: 'effect', label: 'Effect' },
-          { id: 'perKey', label: 'Per-key', badge: wireless, disabled: wireless },
+          { id: 'perKey', label: 'Per-key' },
         ]}
         note={
           lightTab === 'perKey'
@@ -281,7 +279,6 @@ export function LightingPanel({
           <PerKeyPanel
             connected={connected}
             busy={busy}
-            wireless={wireless}
             status={perKeyStatus}
             onApply={onApplyPerKey}
           />

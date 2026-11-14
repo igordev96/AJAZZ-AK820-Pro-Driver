@@ -8,7 +8,6 @@ const renderPanel = (overrides: Partial<Parameters<typeof LightingPanel>[0]> = {
     <LightingPanel
       connected
       busy={false}
-      wireless={false}
       status={{ kind: 'idle' }}
       perKeyStatus={{ kind: 'idle' }}
       onApply={vi.fn()}
@@ -143,10 +142,10 @@ describe('LightingPanel', () => {
     expect(screen.queryByRole('combobox', { name: 'Effect' })).not.toBeInTheDocument();
   });
 
-  it('marks the per-key tab as USB only on the receiver', () => {
-    renderPanel({ wireless: true });
+  it('offers the per-key tab on either link', () => {
+    renderPanel();
 
-    expect(screen.getByRole('tab', { name: /per-key \(usb only\)/i })).toBeDisabled();
+    expect(screen.getByRole('tab', { name: 'Per-key' })).toBeEnabled();
     expect(screen.getByRole('tab', { name: 'Effect' })).toBeEnabled();
   });
 });

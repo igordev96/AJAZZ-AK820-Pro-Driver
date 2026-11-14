@@ -95,8 +95,14 @@ WebHID won because it is the only option with zero install and a stable API for 
     record first to switch the board. The vendor app writes all 81 keys; unpainted keys are off. A
     pure-colour run proved the layout, and the user confirmed the four painted keys, the dark board
     and that brightness dims every painted key at once. The Light view gained an Effect and a Per-key
-    tab with a brush, eraser, Fill all, Clear all and one Apply for the whole table. USB only: no
-    dongle capture carries the table.
+    tab with a brush, eraser, Fill all, Clear all and one Apply for the whole table. It shipped USB
+    only at first, until the receiver capture in the next entry.
+19. **Per-key over the dongle** - a capture on 14 Nov found the colour table under `0x14`, 21 frames
+    of 28 bytes after the `0x80` record. The page sent the same bytes and the board ignored them:
+    one heartbeat at connect and none for the next thirty seconds, while the vendor beats every
+    fifteen. A keep-alive before each write fixed it, and Test 26 confirmed paint, fill, clear,
+    brightness, a power cycle and the first Apply after waking. A sleeping keyboard still needs a
+    key press before the page can reach it.
 
 ## 4. Lessons that cost time
 
@@ -112,6 +118,9 @@ WebHID won because it is the only option with zero install and a stable API for 
 * **A plausible byte layout is not a confirmed one.** The first per-key capture read byte 1 as a
   "follow the global colour" flag and bytes 2-3 as a 16-bit colour. Painting pure red, green, blue
   and white showed it was simply red, green and blue. One controlled run beat an hour of reasoning.
+* **A quiet link is not a working link.** The receiver takes records for a while and then stops,
+  and nothing says so. The vendor's heartbeat every fifteen seconds is the only clue, which is why
+  the page beats before a write when the link has been idle.
 * **The vendor's DB is the source of truth for its own UI.** Empty `t_key_macro_data` proved the
   device had never been written by the vendor app, which made the first Fn write safe.
 * **A stray byte before `<!DOCTYPE>` is not just a parse warning.** The page spent its whole life

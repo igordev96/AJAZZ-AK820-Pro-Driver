@@ -437,8 +437,12 @@ confirmed on the board that those four keys lit in their colours and every other
 
 The mode-switch record carries `0x80`, a zero colour and brightness at byte 9 (5 in every
 capture). The user confirmed on the board that this brightness dims every painted key, so it is
-one value for the whole map, not a per-key setting. The map itself survives a power cycle: Test 25
-unplugged the board for five seconds and the colours came back.
+one value for the whole map, not a per-key setting. The map itself survives a power cycle over USB:
+Test 25 unplugged the board for five seconds and the colours came back.
+
+Over the receiver the same table travels under `0x14`, 28 bytes a frame with the frame number in
+the header, after the `0x80` record goes through the light command. §13 has the frame layout; the
+capture is `dongle-perkey-colour.log`, 14 Nov 2026.
 
 ---
 
@@ -522,7 +526,7 @@ Every output report is 33 bytes:
 byte 0    report id, 0x00
 byte 1    command
 byte 2    payload length
-byte 3    key index for 0x03 and 0x0D, 0x00 otherwise
+byte 3    key index for 0x03 and 0x0D, frame number for 0x14, 0x00 otherwise
 byte 4..  payload
 byte 32   checksum = sum(bytes 0..31) & 0xFF
 ```
@@ -537,6 +541,7 @@ The checksum is arithmetic and holds for every captured frame, including the hea
 | `0x03` | key | 4-byte record | top-layer key patch |
 | `0x0D` | key | 4-byte record | Fn-layer key patch |
 | `0x05` | 0 | fields 0-13 + `AA 55` | lighting, §11 |
+| `0x14` | frame | 28-byte slice of the 576-byte table | per-key colours, §11 |
 | `0x0C` | 0 | fields 0-13 + `AA 55` | clock, §9 |
 | `0x07` | 0 | fields 0-13 + `AA 55` | device settings, §12 |
 | `0x20` | 0 | `00` | heartbeat, every 15 s |
@@ -548,8 +553,12 @@ directly. A key patch carries the same 4-byte record as the wired table (`02 <mo
 
 ### What the captures show
 
-- **Single key at a time.** The vendor app never sends the 576-byte table over the dongle. One
-  `0x03` write changes one key and takes effect immediately, with no commit.
+- **Single key at a time for the keymap.** The vendor app never sends the 576-byte keymap table
+  over the dongle. One `0x03` write changes one key and takes effect immediately, with no commit.
+- **Per-key colours are the exception.** `0x14` carries the 576-byte colour table in 21 frames:
+  twenty of 28 bytes and a last one of 16, `AA 55` included, with the frame number in byte 3. A
+  light record with mode `0x80` precedes it. Captured on 14 Nov 2026
+  (`dongle-perkey-colour.log`), with the same four-byte records as the wired table.
 - **The layer is the command.** `0x03` for the top layer, `0x0D` for Fn; the index stays the
   physical key. Fn + A to Mute was `0D 04 38 03 E2 00 00`.
 - **No replies to patches.** Two key changes produced no input report. The vendor app does not
@@ -557,6 +566,11 @@ directly. A key patch carries the same 4-byte record as the wired table (`02 <mo
 - **Init and heartbeat.** `02 00 00` at connect and `20 01 00` every fifteen seconds. The receiver
   needs both before it accepts a record: on 3 Nov 2026 the same light frame did nothing until the
   page sent init and a heartbeat first, and applied immediately once it did.
+- **The link goes quiet.** The vendor app never leaves more than fifteen seconds between heartbeats,
+  and a page that wrote thirty seconds after connecting had its records ignored: the same frames
+  that worked earlier did nothing. `WirelessClient` now beats again before a write when more than
+  twelve seconds have passed. A keyboard that has gone to sleep still needs a key press; output
+  reports do not wake it.
 - **Two shortcut blocks do not exist on this link.** The Windows key block works from the page, and
   so do the sleep time and the response level (Test 24). Alt+Tab (byte 2) and Alt+F4 (byte 3) go out
   at the offsets the wired record uses, the vendor's own dongle capture puts them there too

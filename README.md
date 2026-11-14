@@ -10,7 +10,7 @@
 An unofficial browser driver and configurator for the AJAZZ AK820 Pro, also sold under the Epomaker
 name. It talks to the keyboard's configuration interface over WebHID, so the everyday jobs need no
 installer and no admin rights: remap keys, set Fn overrides, set the screen clock and play GIFs on
-the 128 × 128 screen, and set the keyboard light.
+the 128 × 128 screen, and set the keyboard light or paint individual keys.
 
 Nothing is installed to use it, so "driver" here means this page, not a file on your disk. The page
 can be installed as an app; that is optional, and covered below.
@@ -44,8 +44,8 @@ number too, which is what to quote in a bug report.
 The app is a Vite, React and TypeScript rewrite of the v1 single-file app, and the wire bytes it
 sends are unchanged. Each feature that writes to the board has been run on an AK820 Pro: the key
 table and both layers, the restore actions, the screen clock and animation channel, the light with
-its 20 effects and per-key colours, the five device settings, and the 2.4 GHz receiver with its
-records, key patches and power-cycle behaviour. Tests 9 to 25 cover the v2 build, and
+its 20 effects and per-key colours on both links, the five device settings, and the 2.4 GHz receiver
+with its records, key patches and power-cycle behaviour. Tests 9 to 26 cover the v2 build, and
 [docs/02-hardware-tests.md](docs/02-hardware-tests.md) records each run, its date and what the board
 did.
 
@@ -80,9 +80,10 @@ protocol, but they have not been tried.
 
 `FDFD` is the 2.4 GHz receiver. It has no feature reports, so the wired path cannot reach it; the
 page talks to it over `0xFF60/0x0061` with output reports instead, and sends the light, the clock,
-the device settings and key changes that way. Key changes go one at a time and the keyboard does
-not confirm them. The receiver has no image channel, so the animation card is USB only; the clock
-still goes over the receiver. The protocol is in
+the device settings, key changes and per-key colours that way. Key changes go one at a time and the
+keyboard does not confirm them. The keyboard also sleeps on this link; press a key to wake it
+before applying, because the page's writes do not wake it. The receiver has no image channel, so
+the animation card is USB only; the clock still goes over the receiver. The protocol is in
 [docs/01-protocol.md](docs/01-protocol.md) §13.
 
 ## What it cannot do
@@ -95,9 +96,8 @@ The screen is write-only too: the page cannot read the clock or anything else th
 The clock has no timezone, so it stays on the wall-clock time you sent.
 
 The light supports 20 effects with colour, brightness, speed and direction, and a per-key map that
-paints a colour on individual keys. The per-key map is USB only, because the receiver has no proven
-path for its 576-byte table. A key you leave unpainted is off while the keyboard runs that map, and
-there is no read-back, so the panel shows the map you last sent.
+paints a colour on individual keys. A key you leave unpainted is off while the keyboard runs that
+map, and there is no read-back, so the panel shows the map you last sent.
 
 The knob is input-only, so it cannot be remapped. Bluetooth mode does not expose the
 configuration interface.
@@ -193,7 +193,8 @@ board to off, and the eraser takes the colour off one key at a time. Nothing is 
 
 A key without a colour is off while the board runs the per-key map; the vendor app behaves the
 same way. Brightness is one value for the whole map, so moving it dims every painted key at once.
-The map is USB only, because the 2.4 GHz receiver has no proven channel for the table.
+Over the receiver the map goes out as 21 frames, and the keyboard confirms none of them, so the
+panel says so.
 
 ### Device settings
 

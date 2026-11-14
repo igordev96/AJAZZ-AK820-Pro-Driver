@@ -747,3 +747,32 @@ change, and Discard restores it.
 
 Not tested: the 576-byte table over the receiver, which needs its own dongle capture, and a second
 keyboard or profile with a different map.
+
+---
+
+## Test 26 — per-key colours over the 2.4 GHz receiver (14 Nov 2026)
+
+Build: the working tree with the receiver path for per-key colours, dev server on
+`http://localhost:5173`, Chrome on Windows, the keyboard in 2.4 GHz mode with the vendor app closed.
+
+The capture of the same day (`dongle-perkey-colour.log`) had already shown the shape: a light record
+with mode `0x80` under `0x05`, then the 576-byte table under `0x14` in 21 frames of 28 bytes, with
+the frame number in the header.
+
+The page's first attempt sent frames that matched the capture byte for byte, and the board did
+nothing. The log had one heartbeat at connect and none for the next thirty seconds, while the
+vendor app beats every fifteen. `WirelessClient` now beats again before a write when the last one is
+older than twelve seconds, and waits 300 ms after the mode record before the first table frame.
+With those two changes the user confirmed the whole panel over the dongle:
+
+- Painted keys lit in their colours, and the rest of the board went dark.
+- **Fill all** painted the whole board; **Clear all** turned it dark.
+- Moving brightness dimmed and brightened the whole map.
+- The map survived switching the keyboard off and on.
+- After the keyboard slept, one key press woke it and the next Apply worked first time.
+
+**Found.** The receiver ignores records after a quiet spell, which is why the vendor app never
+leaves more than fifteen seconds between heartbeats. A sleeping keyboard is a separate matter: its
+output reports do not wake it, so the page now says to press a key first.
+
+Not tested: the sleep interval itself, and a second receiver or firmware.

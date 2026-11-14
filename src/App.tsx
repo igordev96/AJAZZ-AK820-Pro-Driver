@@ -567,9 +567,9 @@ export function App() {
 
   const handleApplyPerKey = useCallback(
     async (values: PerKeySettings) => {
-      if (!transfer) {
-        log('Connect the keyboard with the USB cable first.', 'warn');
-        notify.warn('Connect the keyboard with the USB cable first.');
+      if (!transfer && !wireless) {
+        log('Connect the keyboard first.', 'warn');
+        notify.warn('Connect the keyboard first.');
         return;
       }
       if (busyRef.current) return;
@@ -583,10 +583,35 @@ export function App() {
         for (const [id, colour] of Object.entries(values.colors)) {
           colours.set(Number(id), colour);
         }
-        const result = await transfer.sendPerKey(
-          buildPerKeyTrigger(values.brightness),
-          buildPerKeyTable(colours),
-        );
+
+        const trigger = buildPerKeyTrigger(values.brightness);
+        const table = buildPerKeyTable(colours);
+        const markSent = () =>
+          updateSettings({
+            perKey: { ...values, sent: values.colors, sentBrightness: values.brightness },
+          });
+
+        if (wireless) {
+          // The receiver applies the frames as they arrive and sends nothing
+          // back, so `sent` moves on the write, not on a reply.
+          const frames = await wireless.sendPerKey(trigger, table);
+          markSent();
+
+          const { message, log: line } = describePerKey(colours.size, values.brightness);
+          setPerKeyStatus({
+            kind: 'ok',
+            message: `${message} The receiver does not confirm the map.`,
+          });
+          log(`${line} Sent in ${frames} frames; the receiver does not confirm it.`, 'ok');
+          notify.warn(
+            `${colours.size} key change${colours.size === 1 ? '' : 's'} sent over 2.4 GHz. The keyboard does not confirm them.`,
+          );
+          return;
+        }
+
+        // The guard above allows one link or the other; this narrows the type.
+        if (!transfer) return;
+        const result = await transfer.sendPerKey(trigger, table);
 
         if (result.busy) {
           log('A transfer is already running.', 'warn');
@@ -620,9 +645,7 @@ export function App() {
 
         if (status === STATUS.ok) {
           // Only a confirmed commit moves what the panel believes is on the board.
-          updateSettings({
-            perKey: { ...values, sent: values.colors, sentBrightness: values.brightness },
-          });
+          markSent();
           const { message, log: line } = describePerKey(colours.size, values.brightness);
           setPerKeyStatus({ kind: 'ok', message });
           log(line, 'ok');
@@ -646,7 +669,7 @@ export function App() {
         const message = error instanceof Error ? error.message : String(error);
         setPerKeyStatus({
           kind: 'err',
-          message: 'The colours could not be sent. Nothing may have changed.',
+          message: 'The colours could not be sent. If the board looks wrong, apply again.',
         });
         log(`Per-key colours failed: ${message}`, 'err');
         notify.err('The colours could not be sent.');
@@ -655,7 +678,7 @@ export function App() {
         setBusy(false);
       }
     },
-    [log, transfer],
+    [log, transfer, wireless],
   );
 
   const handleApplySettings = useCallback(
@@ -839,7 +862,7 @@ export function App() {
         : device.status === 'connected' && device.link === 'wireless'
           ? {
               tone: 'info',
-              text: 'Connected over 2.4 GHz. Key changes go one at a time and the keyboard does not confirm them.',
+              text: 'Connected over 2.4 GHz. Key changes go one at a time and the keyboard does not confirm them. If it has gone to sleep, press a key first.',
             }
           : device.status === 'connected' && device.link === null
             ? {
@@ -967,7 +990,6 @@ export function App() {
               <LightingPanel
                 connected={connected}
                 busy={busy}
-                wireless={device.link === 'wireless'}
                 status={lightingStatus}
                 perKeyStatus={perKeyStatus}
                 onApply={handleApplyLight}

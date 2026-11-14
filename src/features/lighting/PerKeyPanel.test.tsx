@@ -12,7 +12,6 @@ const renderPanel = (overrides: Partial<Parameters<typeof PerKeyPanel>[0]> = {})
     <PerKeyPanel
       connected
       busy={false}
-      wireless={false}
       status={{ kind: 'idle' }}
       onApply={vi.fn()}
       {...overrides}
@@ -185,17 +184,6 @@ describe('PerKeyPanel', () => {
 
     expect(screen.getByRole('button', { name: W_RED })).toBeInTheDocument();
     expect(screen.getByText('Everything painted has been sent.')).toBeInTheDocument();
-  });
-
-  it('cannot send over the receiver', () => {
-    renderPanel({ wireless: true });
-
-    expect(screen.getByText('USB only')).toBeInTheDocument();
-    expect(
-      screen.getByText('Per-key colours need the USB cable. The receiver has no channel for them.'),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Apply colours' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Fill all' })).toBeDisabled();
   });
 
   it('asks for a connection before a write', () => {

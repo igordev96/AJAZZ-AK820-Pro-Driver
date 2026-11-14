@@ -137,4 +137,42 @@ describe('App over the 2.4 GHz receiver', () => {
 
     expect(screen.getByRole('button', { name: /upload changes/i })).toBeDisabled();
   });
+
+  it('paints per-key colours over the receiver', async () => {
+    const { frames } = installReceiver();
+    const user = userEvent.setup();
+    render(<App />);
+    await connect(user);
+
+    await user.click(screen.getByRole('tab', { name: 'Lighting' }));
+    await user.click(await screen.findByRole('tab', { name: 'Per-key' }));
+
+    const board = await screen.findByRole('group', { name: 'Per-key colour board' });
+    await user.click(within(board).getByRole('button', { name: /^W\./ }));
+    await user.click(screen.getByRole('button', { name: 'Apply colours' }));
+
+    expect(await screen.findByText(/does not confirm the map/i)).toBeInTheDocument();
+
+    // init, heartbeat, the 0x80 light record, then the 21 table frames.
+    expect(frames).toHaveLength(24);
+
+    const trigger = frames[2];
+    expect(trigger?.[0]).toBe(0x05);
+    expect(trigger?.[1]).toBe(16);
+    expect(Array.from(trigger?.slice(3, 19) ?? [])).toEqual([
+      0x80, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0xaa, 0x55,
+    ]);
+
+    // W is slot 39: table bytes 156-159, frame 5, payload offset 16.
+    const wFrame = frames[3 + 5];
+    expect(wFrame?.[0]).toBe(0x14);
+    expect(wFrame?.[2]).toBe(5);
+    expect(Array.from(wFrame?.slice(3 + 16, 3 + 20) ?? [])).toEqual([0x27, 0xff, 0x80, 0x00]);
+
+    const last = frames[23];
+    expect(last?.[1]).toBe(16);
+    expect(Array.from(last?.slice(3 + 14, 3 + 16) ?? [])).toEqual([0xaa, 0x55]);
+
+    expect(screen.getByText('Everything painted has been sent.')).toBeInTheDocument();
+  });
 });

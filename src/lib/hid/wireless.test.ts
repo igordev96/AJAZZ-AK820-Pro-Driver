@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { buildPerKeyTable, buildPerKeyTrigger } from '@/lib/lighting';
 import {
+  PER_KEY_FRAME_GAP_MS,
+  PER_KEY_SWITCH_PAUSE_MS,
   WIRELESS_COMMANDS,
   WIRELESS_FRAME_SIZE,
+  WIRELESS_HEARTBEAT_MS,
   WIRELESS_RECORD_SIZE,
   WirelessClient,
   buildWirelessFrame,
@@ -266,6 +270,110 @@ describe('WirelessClient', () => {
 
     // A second init, heartbeat and record: the failed handshake was not cached.
     expect(frames.map((frame) => frame[0])).toEqual([
+      WIRELESS_COMMANDS.init,
+      WIRELESS_COMMANDS.heartbeat,
+      WIRELESS_COMMANDS.light,
+    ]);
+  });
+});
+
+describe('WirelessClient per-key', () => {
+  const trigger = buildPerKeyTrigger(5);
+  const table = buildPerKeyTable(new Map([[39, '#ff0000']]));
+
+  it('sends the mode switch, then the table in 28-byte frames', async () => {
+    const recorder = sent();
+    const slept: number[] = [];
+    const clock = {
+      now: () => 0,
+      sleep: async (ms: number) => {
+        slept.push(ms);
+      },
+    };
+    const client = new WirelessClient(recorder.device, () => {}, clock);
+
+    const count = await client.sendPerKey(trigger, table);
+
+    expect(count).toBe(21);
+    expect(recorder.frames).toHaveLength(24);
+
+    const switchFrame = recorder.frames[2];
+    expect(switchFrame?.[0]).toBe(WIRELESS_COMMANDS.light);
+    expect(switchFrame?.[1]).toBe(16);
+    expect(Array.from(switchFrame?.slice(3, 19) ?? [])).toEqual([
+      0x80, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0xaa, 0x55,
+    ]);
+
+    const frames = recorder.frames.slice(3);
+    expect(frames.map((frame) => frame[2])).toEqual(Array.from({ length: 21 }, (_, i) => i));
+    expect(frames.map((frame) => frame[1])).toEqual([...Array(20).fill(28), 16]);
+
+    const rebuilt = new Uint8Array(576);
+    let offset = 0;
+    for (const frame of frames) {
+      const length = frame[1] ?? 0;
+      rebuilt.set(frame.subarray(3, 3 + length), offset);
+      offset += length;
+      expect(frame[31]).toBe(frame.subarray(0, 31).reduce((sum, byte) => sum + byte, 0) & 0xff);
+    }
+
+    expect(offset).toBe(576);
+    expect(Array.from(rebuilt)).toEqual(Array.from(table));
+    expect(Array.from(rebuilt.subarray(156, 160))).toEqual([0x27, 0xff, 0x00, 0x00]);
+    expect(Array.from(rebuilt.subarray(574, 576))).toEqual([0xaa, 0x55]);
+    expect(slept).toHaveLength(21);
+    expect(slept[0]).toBe(PER_KEY_SWITCH_PAUSE_MS);
+    expect(slept.slice(1).every((ms) => ms === PER_KEY_FRAME_GAP_MS)).toBe(true);
+  });
+
+  it('refuses buffers of the wrong size', async () => {
+    const client = new WirelessClient(sent().device);
+
+    await expect(client.sendPerKey(new Uint8Array(10), table)).rejects.toThrow('64');
+    await expect(client.sendPerKey(trigger, new Uint8Array(10))).rejects.toThrow('576');
+  });
+});
+
+describe('WirelessClient keep-alive', () => {
+  it('beats again before a record when the link has been quiet', async () => {
+    const recorder = sent();
+    let now = 0;
+    const clock = {
+      now: () => now,
+      sleep: async (ms: number) => {
+        now += ms;
+      },
+    };
+    const client = new WirelessClient(recorder.device, () => {}, clock);
+
+    await client.init();
+    now += WIRELESS_HEARTBEAT_MS + 1;
+    await client.sendLight(new Uint8Array(64));
+
+    expect(recorder.frames.map((frame) => frame[0])).toEqual([
+      WIRELESS_COMMANDS.init,
+      WIRELESS_COMMANDS.heartbeat,
+      WIRELESS_COMMANDS.heartbeat,
+      WIRELESS_COMMANDS.light,
+    ]);
+  });
+
+  it('does not beat again inside the window', async () => {
+    const recorder = sent();
+    let now = 0;
+    const clock = {
+      now: () => now,
+      sleep: async (ms: number) => {
+        now += ms;
+      },
+    };
+    const client = new WirelessClient(recorder.device, () => {}, clock);
+
+    await client.init();
+    now += 2_000;
+    await client.sendLight(new Uint8Array(64));
+
+    expect(recorder.frames.map((frame) => frame[0])).toEqual([
       WIRELESS_COMMANDS.init,
       WIRELESS_COMMANDS.heartbeat,
       WIRELESS_COMMANDS.light,

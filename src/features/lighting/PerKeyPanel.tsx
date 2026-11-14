@@ -4,7 +4,6 @@ import { StatusNote } from '@/components/status-note';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { UsbOnlyBadge } from '@/components/usb-only-badge';
 import { updateSettings, useSettings } from '@/features/settings/useSettings';
 import { FACTORY_KEYS } from '@/lib/keymap';
 import { PER_KEY_MAX_BRIGHTNESS, PER_KEY_MIN_BRIGHTNESS } from '@/lib/lighting';
@@ -19,7 +18,6 @@ export type PerKeyStatus =
 type PerKeyPanelProps = {
   connected: boolean;
   busy: boolean;
-  wireless: boolean;
   status: PerKeyStatus;
   onApply: (values: PerKeySettings) => void;
 };
@@ -50,14 +48,14 @@ const countPending = (values: PerKeySettings): number => {
  * Paint a colour on individual keys. Everything without a colour is dark while
  * the board runs the per-key map, which is why Clear all means "every key off".
  */
-export function PerKeyPanel({ connected, busy, wireless, status, onApply }: PerKeyPanelProps) {
+export function PerKeyPanel({ connected, busy, status, onApply }: PerKeyPanelProps) {
   const values = useSettings((settings) => settings.perKey);
   const [tool, setTool] = useState<PaintTool>('brush');
 
   const { colors, sent, brightness, brush } = values;
   const painted = Object.keys(colors).length;
   const pending = countPending(values);
-  const disabled = busy || wireless;
+  const disabled = busy;
 
   const change = (patch: Partial<PerKeySettings>) => {
     updateSettings({ perKey: { ...values, ...patch } });
@@ -114,7 +112,6 @@ export function PerKeyPanel({ connected, busy, wireless, status, onApply }: PerK
         <aside className="h-fit rounded-panel border border-line bg-surface p-4">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold">Paint keys</h2>
-            {wireless ? <UsbOnlyBadge /> : null}
           </div>
 
           <div className="mt-4">
@@ -212,10 +209,7 @@ export function PerKeyPanel({ connected, busy, wireless, status, onApply }: PerK
           </p>
 
           <div className="mt-3 flex items-center gap-2">
-            <Button
-              disabled={!connected || busy || wireless || pending === 0}
-              onClick={() => onApply(values)}
-            >
+            <Button disabled={!connected || busy || pending === 0} onClick={() => onApply(values)}>
               {busy ? 'Sending…' : 'Apply colours'}
             </Button>
             <Button
@@ -239,12 +233,7 @@ export function PerKeyPanel({ connected, busy, wireless, status, onApply }: PerK
                 {status.message}
               </StatusNote>
             ) : null}
-            {wireless && status.kind === 'idle' ? (
-              <StatusNote tone="muted" className="mt-3">
-                Per-key colours need the USB cable. The receiver has no channel for them.
-              </StatusNote>
-            ) : null}
-            {!connected && !wireless && status.kind === 'idle' ? (
+            {!connected && status.kind === 'idle' ? (
               <StatusNote tone="muted" className="mt-3">
                 Connect the keyboard to send the colours.
               </StatusNote>
