@@ -402,8 +402,43 @@ with no picker; Scrolling is `0x3B` (up/down); Rolling is `0x37` (left/right).
 The vendor leaves about 75 ms between the record and the commit; this page waits 60 ms there, which
 stopped an intermittent unconfirmed commit at brightness 2.
 
-Per-key colours use a different path: `04 23` with nine chunks and a 576-byte table, 4 bytes per
-key slot. Its inner format is not implemented.
+Per-key colours use their own path, captured on 13 Nov 2026 (`usb-perkey-colour.log`). The board
+is switched with a normal light record whose mode is `0x80`, then the colours follow as a
+576-byte table under `04 23`:
+
+```
+04 18
+04 13 00 00 00 00 00 00 01               announce, one chunk
+80 00 00 00 00 00 00 00 00 05 00 00 00 00 AA 55   mode switch, brightness at 9
+04 02
+04 F0
+
+04 18
+04 23 00 00 00 00 00 00 09               announce, nine chunks
+9 x 64-byte chunks                       the table
+04 02
+04 F0
+```
+
+The table is four bytes per key slot, at `key_index × 4`, the same addressing as the keymap:
+
+| Offset | Meaning |
+|---|---|
+| 0 | key index, 1-142 |
+| 1-3 | red, green, blue, 0-255 |
+
+One run painted four keys: W `27 FF 00 00`, E `28 00 FF 00`, R `29 00 00 FF` and T
+`2A FF FF FF`. A key with no colour is written as `<index> 00 00 00`, the vendor app writes all
+81 keys rather than only the painted ones, and slots with no key stay zero. `AA 55` sits at
+574-575.
+
+There is no flag and no follow-the-global colour: a key without a colour is off. The user
+confirmed on the board that those four keys lit in their colours and every other key went dark.
+
+The mode-switch record carries `0x80`, a zero colour and brightness at byte 9 (5 in every
+capture). The user confirmed on the board that this brightness dims every painted key, so it is
+one value for the whole map, not a per-key setting. The map itself survives a power cycle: Test 25
+unplugged the board for five seconds and the colours came back.
 
 ---
 

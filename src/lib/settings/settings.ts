@@ -1,6 +1,12 @@
 import type { DeviceSettings, SleepIndex } from '../device';
 import { DEFAULT_DEVICE_SETTINGS } from '../device';
+import { FACTORY_KEYS } from '../keymap';
 import type { LightSettings } from '../lighting/describe';
+import {
+  PER_KEY_DEFAULT_BRIGHTNESS,
+  PER_KEY_MAX_BRIGHTNESS,
+  PER_KEY_MIN_BRIGHTNESS,
+} from '../lighting/perKey';
 import {
   LIGHT_MAX_BRIGHTNESS,
   LIGHT_MAX_SPEED,
@@ -17,6 +23,24 @@ export type View = 'keys' | 'screen' | 'light' | 'device';
 
 export type ClockMode = 'now' | 'custom';
 
+/** Which half of the Light view is open: the effects or the per-key board. */
+export type LightTab = 'effect' | 'perKey';
+
+/**
+ * Per-key colours: the draft being painted, the map last sent to the board, and
+ * the brightness the mode-`0x80` record carries. Both maps hold only keys with
+ * a colour of their own, keyed by the key index as a decimal string.
+ */
+export type PerKeySettings = {
+  readonly colors: Readonly<Record<string, string>>;
+  readonly sent: Readonly<Record<string, string>>;
+  readonly brightness: number;
+  /** The brightness of the last confirmed write, or null when none was sent. */
+  readonly sentBrightness: number | null;
+  /** The colour the brush paints with. */
+  readonly brush: string;
+};
+
 export type DeviceLastSent = {
   /** The values that were sent, so the panel can tell them from the draft. */
   readonly values: DeviceSettings;
@@ -26,6 +50,8 @@ export type DeviceLastSent = {
 
 export type Settings = {
   readonly lighting: LightSettings;
+  readonly perKey: PerKeySettings;
+  readonly lightTab: LightTab;
   readonly clock: { readonly mode: ClockMode };
   readonly device: DeviceSettings;
   readonly deviceLastSent: DeviceLastSent | null;
@@ -41,6 +67,14 @@ export const DEFAULT_SETTINGS: Settings = {
     colorful: false,
     direction: 0,
   },
+  perKey: {
+    colors: {},
+    sent: {},
+    brightness: PER_KEY_DEFAULT_BRIGHTNESS,
+    sentBrightness: null,
+    brush: '#ff8000',
+  },
+  lightTab: 'effect',
   clock: { mode: 'now' },
   device: DEFAULT_DEVICE_SETTINGS,
   deviceLastSent: null,
@@ -81,9 +115,54 @@ function readLighting(raw: unknown): LightSettings {
   };
 }
 
+const KEY_IDS = new Set<number>(FACTORY_KEYS.map((key) => key.idx));
+
+/** Reads a key-index → `#rrggbb` map, dropping anything the board cannot take. */
+function readColourMap(raw: unknown): Record<string, string> {
+  if (!isRecord(raw)) return {};
+
+  const colours: Record<string, string> = {};
+  for (const [id, value] of Object.entries(raw)) {
+    const idx = Number(id);
+    if (!Number.isInteger(idx) || !KEY_IDS.has(idx)) continue;
+    if (typeof value !== 'string' || !HEX.test(value)) continue;
+    colours[String(idx)] = value.toLowerCase();
+  }
+  return colours;
+}
+
+/** Reads the per-key half of the light settings. Every row is checked on its own. */
+export function readPerKey(raw: unknown): PerKeySettings {
+  const fallback = DEFAULT_SETTINGS.perKey;
+  if (!isRecord(raw)) return fallback;
+
+  const sentBrightness =
+    typeof raw.sentBrightness === 'number' &&
+    Number.isInteger(raw.sentBrightness) &&
+    raw.sentBrightness >= PER_KEY_MIN_BRIGHTNESS &&
+    raw.sentBrightness <= PER_KEY_MAX_BRIGHTNESS
+      ? raw.sentBrightness
+      : null;
+
+  return {
+    colors: readColourMap(raw.colors),
+    sent: readColourMap(raw.sent),
+    brightness: whole(
+      raw.brightness,
+      PER_KEY_MIN_BRIGHTNESS,
+      PER_KEY_MAX_BRIGHTNESS,
+      fallback.brightness,
+    ),
+    sentBrightness,
+    brush:
+      typeof raw.brush === 'string' && HEX.test(raw.brush)
+        ? raw.brush.toLowerCase()
+        : fallback.brush,
+  };
+}
+
 const sleepIndex = (value: unknown): SleepIndex =>
   value === 0 || value === 1 || value === 2 || value === 3 ? value : DEFAULT_DEVICE_SETTINGS.sleep;
-
 function readDeviceLastSent(raw: unknown): DeviceLastSent | null {
   if (!isRecord(raw)) return null;
   if (typeof raw.at !== 'number' || !Number.isFinite(raw.at) || raw.at <= 0) return null;
@@ -130,6 +209,8 @@ export function readSettings(text: string | null): Settings {
 
   return {
     lighting: readLighting(raw.lighting),
+    perKey: readPerKey(raw.perKey),
+    lightTab: raw.lightTab === 'perKey' ? 'perKey' : 'effect',
     clock: { mode: clock === 'custom' ? 'custom' : 'now' },
     device: readDevice(raw.device),
     deviceLastSent: readDeviceLastSent(raw.deviceLastSent),

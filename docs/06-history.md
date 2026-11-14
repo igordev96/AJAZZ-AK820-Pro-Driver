@@ -90,6 +90,13 @@ WebHID won because it is the only option with zero install and a stable API for 
     the cache. A newer build waits in the worker until the strip above the workbench offers the
     reload: a tool that writes bytes to a keyboard must not swap its own code mid-session. No bytes
     changed, so there is no new hardware test.
+18. **Per-key lighting** - a controlled capture on 13 Nov 2026 settled the `04 23` table: four bytes
+    per key, the index then red, green and blue, black for a key with no colour, and an `0x80` light
+    record first to switch the board. The vendor app writes all 81 keys; unpainted keys are off. A
+    pure-colour run proved the layout, and the user confirmed the four painted keys, the dark board
+    and that brightness dims every painted key at once. The Light view gained an Effect and a Per-key
+    tab with a brush, eraser, Fill all, Clear all and one Apply for the whole table. USB only: no
+    dongle capture carries the table.
 
 ## 4. Lessons that cost time
 
@@ -102,6 +109,9 @@ WebHID won because it is the only option with zero install and a stable API for 
   probe.
 * **No read-back.** Every design decision about baselines follows from this: top = XML, Fn =
   zeros, persistence in `localStorage`.
+* **A plausible byte layout is not a confirmed one.** The first per-key capture read byte 1 as a
+  "follow the global colour" flag and bytes 2-3 as a 16-bit colour. Painting pure red, green, blue
+  and white showed it was simply red, green and blue. One controlled run beat an hour of reasoning.
 * **The vendor's DB is the source of truth for its own UI.** Empty `t_key_macro_data` proved the
   device had never been written by the vendor app, which made the first Fn write safe.
 * **A stray byte before `<!DOCTYPE>` is not just a parse warning.** The page spent its whole life

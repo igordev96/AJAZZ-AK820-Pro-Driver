@@ -23,6 +23,14 @@ const memoryStorage = (seed?: string) => {
 
 const custom: Settings = {
   lighting: { mode: 10, color: '#00ff00', brightness: 2, speed: 4, colorful: true, direction: 3 },
+  perKey: {
+    colors: { '39': '#ff0000' },
+    sent: {},
+    brightness: 3,
+    sentBrightness: null,
+    brush: '#00ff00',
+  },
+  lightTab: 'perKey',
   clock: { mode: 'custom' },
   device: {
     responseLevel: 4,

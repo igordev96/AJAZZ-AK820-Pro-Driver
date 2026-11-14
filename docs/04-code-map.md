@@ -18,7 +18,7 @@ src/lib/keymap/          constants, factory keys, record encoding, names, parsin
 src/lib/hid/             protocol, client, collections, wireless, WebHID types, transfer, time,
                          probes, raw
 src/lib/screen/          RGB565, frame layout, animation payload
-src/lib/lighting/        the 64-byte record, preview motion, accepted-light wording
+src/lib/lighting/        the 64-byte record, the per-key table, preview motion, wording
 src/lib/device/          the 64-byte settings record, response levels, sleep options
 src/lib/editor/          row state, reducer, validation, persistence, per-key patches
 src/lib/settings/        remembered view, clock mode and light settings
@@ -37,7 +37,7 @@ src/features/device/     useDevice, AppHeader, ViewTabs, DevicePanel
 src/features/editor/     LayerTabs, KeymapBoard, KeyInspector, PendingBar, WriteRules, keyLabels
 src/features/profile/    ProfileMenu: export, import and the confirm step
 src/features/screen/     ScreenPanel, ScreenPreview, ClockCard, DateTimePicker, AnimationCard
-src/features/lighting/   LightingPanel, LightPreview
+src/features/lighting/   LightingPanel, LightPreview, PerKeyPanel, PerKeyBoard
 src/features/log/        useLog, LogPanel
 src/features/settings/   the settings store and its React hook
 src/features/advanced/   AdvancedDrawer
@@ -139,6 +139,12 @@ vendor's 153 ms. `src/lib/screen` builds the buffer; the layout is in `docs/01-p
 with one chunk, the record, a 60 ms pause, `04 02`, `04 F0`. `src/lib/lighting` builds the record;
 the layout is in `docs/01-protocol.md` §11.
 
+`TransferService.sendPerKey` writes per-key colours as two staged sequences under one lock: the
+mode-`0x80` light record first, then the 576-byte table under `04 23` with nine chunks and the end
+command. A refused mode switch stops before the table. It returns the two sequences apart, because
+the caller has to know which commit failed. The table and the trigger come from
+`src/lib/lighting/perKey.ts`; the layout is in `docs/01-protocol.md` §11.
+
 `TransferService` owns the transfer lock. A second `sendTable` or `sendTime` call returns
 `{ busy: true }` instead of interleaving. `App` also keeps one busy flag for uploads, clock writes
 and advanced probes, so a probe cannot run during an upload and an upload cannot start during a
@@ -217,10 +223,12 @@ its container. Keys are not re-laid out on mobile; the whole board scales.
 
 The view tabs and the layer tabs are the same control, so both render through `TabRow`. A result
 under a send button is a `StatusNote`: one dot, one sentence, and a colour that says whether the
-keyboard accepted it. A tab can carry a brass dot when its view cannot work on the current link;
-`ViewTabs` marks Screen over the 2.4 GHz receiver and gives the trigger an accessible name that says
-so. `LightPreview` paints from the theme tokens with `fill-*` and `stroke-*` utilities, so a palette
-change reaches it too.
+keyboard accepted it. The four view tabs carry no link badge: the clock still goes over the
+receiver from the Screen view, and Lighting and Device keep working there. The controls that need
+USB mark themselves, with a brass dot on the Per-key tab and the `UsbOnlyBadge` pill on the
+animation card and the two blocked shortcut rows. `TabRow` can still dot a tab whose whole panel
+cannot work on the link. `LightPreview` paints from the theme tokens with `fill-*` and `stroke-*`
+utilities, so a palette change reaches it too.
 
 Visual states are separate: brass edge and brass legend mean "differs from factory", a brass dot
 means "not uploaded", an ivory edge means "selected", and a dashed cap means "firmware-owned on the
@@ -259,6 +267,15 @@ flip are tested without a keyboard. Effects that react to a key press are not mo
 has no keystroke to react to. After a confirmed commit, `src/lib/lighting/describe.ts` writes the
 confirmation and the log line from the mode's own flags, so a mode without a speed control never
 reports one, and a mode that cycles through colours never promises the picker's hex.
+
+A second tab row inside **Lighting** switches between **Effect** and **Per-key**. Per-key paints
+colours on the same 81-key geometry: brush and eraser, a colour picker with the vendor's default
+swatches, brightness, Fill all, Clear all, and one Apply for the whole 576-byte table. Painting
+works with a click, a drag, or Space and Backspace on the focused key. The draft and the map last
+sent both live in the settings store, so a reload still shows which keys are unsent. A key without
+a colour is off while the board runs the per-key map, which is why Clear all means every key off.
+The tab is disabled and badged USB only on the receiver, because no captured frame carries the
+table.
 
 The **Device** view is two columns. The left one is the vendor's response-time table, all three
 links, with the selected level in ivory so the numbers can be compared before choosing. The right
@@ -314,6 +331,7 @@ app busy flag through `onBusyChange`.
 | `src/lib/lighting/record.test.ts` | solid-light bytes, colour order, ranges |
 | `src/lib/lighting/preview.test.ts` | effect motion, wave direction, rotation flip |
 | `src/lib/lighting/describe.test.ts` | confirmed-light wording, per-mode fields |
+| `src/lib/lighting/perKey.test.ts` | slot record, colour bytes, 81-key table, trigger, wording |
 | `src/lib/settings/settings.test.ts` | stored-field validation, defaults, version |
 | `src/lib/hid/collections.test.ts` | flattening and config collection lookup |
 | `src/lib/hid/diagnostics.test.ts` | pass, refused write, silent read, missing collection |
@@ -335,7 +353,8 @@ app busy flag through `onBusyChange`.
 | `src/features/screen/ClockCard.test.tsx` | clock modes, validation, status, busy state |
 | `src/features/screen/DateTimePicker.test.tsx` | day and time selection, Now, close |
 | `src/features/screen/ScreenPanel.test.tsx` | preview, custom input, send payload |
-| `src/features/lighting/LightingPanel.test.tsx` | colour, brightness, preview labels, status |
+| `src/features/lighting/LightingPanel.test.tsx` | colour, brightness, preview labels, status, the Effect/Per-key switch |
+| `src/features/lighting/PerKeyPanel.test.tsx` | painting, eraser, fill and clear, unsent count, receiver limits |
 | `src/features/settings/store.test.ts` | change notification, delayed write, flush, reset |
 | `src/pwa/update-store.test.ts` | ready once, subscribers, unsubscribe, reload handler |
 | `src/components/update-notice.test.tsx` | hidden until waiting, build named, Reload asks the worker |
@@ -392,6 +411,12 @@ the app tests wait with `findBy` after switching views.
     only way a new build replaces a running one is the **Reload** button. `npm run check:precache`
     fails when a shipped file, an icon size or the `SKIP_WAITING` handler is missing, because a lazy
     panel left out of the precache shows a blank tab with no network.
+17. **Per-key colours are four bytes a slot.** `key_index × 4`, then red, green and blue, `AA 55`
+    at 574-575. All 81 keys are written, with black for a key that has no colour; a key without a
+    colour is off, there is no follow-the-global flag.
+18. **The per-key mode switch comes first.** `04 13` with mode `0x80` and brightness at byte 9, then
+    the table under `04 23`. A refused mode switch stops before the table. The receiver has no
+    proven path for the table, so the control is USB only.
 
 ## 9. Common changes
 

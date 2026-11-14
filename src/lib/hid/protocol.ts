@@ -16,6 +16,8 @@ export const COMMANDS = {
   fn: [0x04, 0x27],
   time: [0x04, 0x28],
   light: [0x04, 0x13],
+  /** Per-key colours: a 576-byte table, four bytes per key slot. */
+  perKey: [0x04, 0x23],
   /** Device settings. Byte 2 is 01 in every capture; byte 8 becomes the chunk count. */
   settings: [0x04, 0x17, 0x01],
   animation: [0x04, 0x72],

@@ -8,8 +8,11 @@ const renderPanel = (overrides: Partial<Parameters<typeof LightingPanel>[0]> = {
     <LightingPanel
       connected
       busy={false}
+      wireless={false}
       status={{ kind: 'idle' }}
+      perKeyStatus={{ kind: 'idle' }}
       onApply={vi.fn()}
+      onApplyPerKey={vi.fn()}
       {...overrides}
     />,
   );
@@ -128,5 +131,22 @@ describe('LightingPanel', () => {
 
     expect(screen.getByRole('combobox', { name: 'Effect' })).toHaveTextContent('Rolling');
     expect(screen.getByRole('slider', { name: 'Speed' })).toBeInTheDocument();
+  });
+
+  it('switches to the per-key board', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    await user.click(screen.getByRole('tab', { name: 'Per-key' }));
+
+    expect(screen.getByRole('group', { name: 'Per-key colour board' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Effect' })).not.toBeInTheDocument();
+  });
+
+  it('marks the per-key tab as USB only on the receiver', () => {
+    renderPanel({ wireless: true });
+
+    expect(screen.getByRole('tab', { name: /per-key \(usb only\)/i })).toBeDisabled();
+    expect(screen.getByRole('tab', { name: 'Effect' })).toBeEnabled();
   });
 });

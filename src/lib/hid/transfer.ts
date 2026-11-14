@@ -43,6 +43,17 @@ export type TransferResult = {
   readonly busy?: boolean;
 };
 
+/**
+ * A per-key write is two sequences: the `0x80` record that puts the board in
+ * per-key mode, then the 576-byte colour table. They are reported apart so the
+ * caller can tell which commit failed.
+ */
+export type PerKeyTransfer = {
+  readonly trigger: TransferStep[];
+  readonly table: TransferStep[] | null;
+  readonly busy?: boolean;
+};
+
 type Sequence = {
   readonly announce: readonly number[];
   readonly body: Uint8Array;
@@ -63,6 +74,10 @@ const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
 const noLog: LogFn = () => {};
+
+/** The status of the last step with this name, or null when it never ran. */
+const lastStatus = (steps: readonly TransferStep[], name: TransferStep['step']): number | null =>
+  steps.filter((step) => step.step === name).at(-1)?.reply.status ?? null;
 
 export class TransferService {
   private busy = false;
@@ -322,6 +337,57 @@ export class TransferService {
           sendEnd: true,
         }),
       };
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  /**
+   * Writes per-key colours. The vendor app switches the board with a normal
+   * light record whose mode is `0x80`, then stages the table under `04 23`:
+   *
+   *   04 18 → 04 13 (1 chunk) → the 0x80 record → 04 02 → 04 F0
+   *   04 18 → 04 23 (9 chunks) → the 576-byte table → 04 02 → 04 F0
+   *
+   * Captured on 30 Oct 2026 in `re/captures/lighting-controlled.log`.
+   */
+  async sendPerKey(trigger: Uint8Array, table: Uint8Array): Promise<PerKeyTransfer> {
+    if (trigger.length !== LIGHT_RECORD_SIZE) {
+      throw new Error(`the per-key trigger must be ${LIGHT_RECORD_SIZE} bytes`);
+    }
+    if (table.length !== TABLE_SIZE) {
+      throw new Error(`the per-key table must be ${TABLE_SIZE} bytes`);
+    }
+
+    if (this.busy) {
+      this.log('a transfer is already running — ignoring this request', 'warn');
+      return { trigger: [], table: null, busy: true };
+    }
+
+    this.busy = true;
+    try {
+      const triggerSteps = await this.runSequence({
+        announce: COMMANDS.light,
+        body: trigger,
+        chunkCount: 1,
+        sendEnd: true,
+      });
+
+      // A refused mode switch means the board is not waiting for a table, so
+      // staging 576 bytes after it would only add noise.
+      if (lastStatus(triggerSteps, 'commit') !== STATUS.ok) {
+        this.log('  ⇒ the per-key mode switch was not confirmed — the table was not sent', 'warn');
+        return { trigger: triggerSteps, table: null };
+      }
+
+      const tableSteps = await this.runSequence({
+        announce: COMMANDS.perKey,
+        body: table,
+        chunkCount: CHUNK_COUNT,
+        sendEnd: true,
+      });
+
+      return { trigger: triggerSteps, table: tableSteps };
     } finally {
       this.busy = false;
     }

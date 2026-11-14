@@ -124,8 +124,8 @@ describe('App over the 2.4 GHz receiver', () => {
     expect(screen.getByText(/has no screen channel/i)).toBeInTheDocument();
     expect(screen.getByLabelText('Choose a file')).toBeDisabled();
     expect(screen.getByRole('button', { name: /send animation/i })).toBeDisabled();
-    // The tab says it before the click.
-    expect(screen.getByRole('tab', { name: 'Screen (USB only)' })).toBeInTheDocument();
+    // The view tab carries no link badge: the clock still works over the receiver.
+    expect(screen.getByRole('tab', { name: 'Screen' })).toBeInTheDocument();
   });
 
   it('keeps key changes pending when the receiver is not connected', async () => {

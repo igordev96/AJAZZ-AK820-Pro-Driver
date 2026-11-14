@@ -9,7 +9,7 @@ const views = [
   {
     id: 'light',
     label: 'Lighting',
-    note: 'Pick one of the 20 effects and set the controls it offers.',
+    note: 'Set an effect for the whole board, or paint colours on individual keys.',
   },
   {
     id: 'device',
@@ -21,16 +21,16 @@ const views = [
 type ViewTabsProps = {
   view: View;
   disabled: boolean;
-  /** True over the 2.4 GHz receiver, where the screen has no channel. */
-  wireless?: boolean;
 };
 
-export function ViewTabs({ view, disabled, wireless = false }: ViewTabsProps) {
+/**
+ * The four views. None carries a link badge: the Screen view still sends the
+ * clock over 2.4 GHz, and Lighting and Device keep working there, so a dot on
+ * a view would claim more than it knows. The controls that need USB mark
+ * themselves: the Per-key tab, the animation card and the shortcut rows.
+ */
+export function ViewTabs({ view, disabled }: ViewTabsProps) {
   const active = views.find((item) => item.id === view) ?? views[0];
-  const items = views.map((item) => ({
-    ...item,
-    badge: wireless && item.id === 'screen',
-  }));
 
-  return <TabRow label="View" items={items} note={active.note} disabled={disabled} />;
+  return <TabRow label="View" items={views} note={active.note} disabled={disabled} />;
 }

@@ -23,6 +23,7 @@ import { WriteRules } from '@/features/editor/WriteRules';
 import { LogPanel } from '@/features/log/LogPanel';
 import { useLog } from '@/features/log/useLog';
 import type { LightingStatus, LightingValues } from '@/features/lighting/LightingPanel';
+import type { PerKeyStatus } from '@/features/lighting/PerKeyPanel';
 import type { DeviceStatus } from '@/features/device/DevicePanel';
 import type { ScreenStatus } from '@/features/screen/AnimationCard';
 import type { TimeStatus } from '@/features/screen/ClockCard';
@@ -48,11 +49,18 @@ import { HidClient, STATUS, TransferService, formatClock, isTransportFailed } fr
 import { buildTimePacket } from '@/lib/hid/time';
 import { WirelessClient } from '@/lib/hid/wireless';
 import { FN_LOCKED, buildTable } from '@/lib/keymap';
-import { buildLightRecord, describeLight } from '@/lib/lighting';
+import {
+  buildLightRecord,
+  buildPerKeyTable,
+  buildPerKeyTrigger,
+  describeLight,
+  describePerKey,
+} from '@/lib/lighting';
 import { buildAnimationPayload } from '@/lib/screen';
 import { buildSettingsRecord, describeSettings, type DeviceSettings } from '@/lib/device';
 import { downloadText, profileFileName } from '@/lib/download';
 import { buildProfile, type ParsedProfile } from '@/lib/profile';
+import type { PerKeySettings } from '@/lib/settings';
 import { notify } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
@@ -137,6 +145,7 @@ export function App() {
   const settings = useSettings((stored) => stored);
   const [timeStatus, setTimeStatus] = useState<TimeStatus>({ kind: 'idle' });
   const [lightingStatus, setLightingStatus] = useState<LightingStatus>({ kind: 'idle' });
+  const [perKeyStatus, setPerKeyStatus] = useState<PerKeyStatus>({ kind: 'idle' });
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatus>({ kind: 'idle' });
   const [animationStatus, setAnimationStatus] = useState<ScreenStatus>({ kind: 'idle' });
   const [animationSending, setAnimationSending] = useState(false);
@@ -556,6 +565,99 @@ export function App() {
     [log, transfer, wireless],
   );
 
+  const handleApplyPerKey = useCallback(
+    async (values: PerKeySettings) => {
+      if (!transfer) {
+        log('Connect the keyboard with the USB cable first.', 'warn');
+        notify.warn('Connect the keyboard with the USB cable first.');
+        return;
+      }
+      if (busyRef.current) return;
+
+      busyRef.current = true;
+      setBusy(true);
+      setPerKeyStatus({ kind: 'idle' });
+
+      try {
+        const colours = new Map<number, string>();
+        for (const [id, colour] of Object.entries(values.colors)) {
+          colours.set(Number(id), colour);
+        }
+        const result = await transfer.sendPerKey(
+          buildPerKeyTrigger(values.brightness),
+          buildPerKeyTable(colours),
+        );
+
+        if (result.busy) {
+          log('A transfer is already running.', 'warn');
+          notify.warn('A transfer is already running.');
+          return;
+        }
+
+        // No table means the mode switch was refused, so nothing was painted.
+        if (!result.table) {
+          setPerKeyStatus({
+            kind: 'err',
+            message: 'The keyboard refused per-key mode. Nothing was painted.',
+          });
+          log('The keyboard refused the per-key mode. Nothing was painted.', 'err');
+          notify.err('The keyboard refused per-key mode. Nothing was painted.');
+          return;
+        }
+
+        if (isTransportFailed(result.table)) {
+          setPerKeyStatus({
+            kind: 'err',
+            message: 'The colours may not have been sent. Check the board before trying again.',
+          });
+          log('The per-key transfer stopped early. The board may hold a mix of colours.', 'err');
+          notify.err('The colours may not have been sent.');
+          return;
+        }
+
+        const status =
+          result.table.filter((step) => step.step === 'commit').at(-1)?.reply.status ?? null;
+
+        if (status === STATUS.ok) {
+          // Only a confirmed commit moves what the panel believes is on the board.
+          updateSettings({
+            perKey: { ...values, sent: values.colors, sentBrightness: values.brightness },
+          });
+          const { message, log: line } = describePerKey(colours.size, values.brightness);
+          setPerKeyStatus({ kind: 'ok', message });
+          log(line, 'ok');
+          notify.ok(message);
+          return;
+        }
+
+        setPerKeyStatus({
+          kind: 'err',
+          message:
+            'The keyboard did not confirm the colours. The board may still show the previous map; apply again to replace it.',
+        });
+        log(
+          `Per-key colours not confirmed (${status === null ? 'no reply' : `0x${hex([status])}`}).`,
+          'err',
+        );
+        notify.warn(
+          'The keyboard did not confirm the colours. Apply again if the board looks wrong.',
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setPerKeyStatus({
+          kind: 'err',
+          message: 'The colours could not be sent. Nothing may have changed.',
+        });
+        log(`Per-key colours failed: ${message}`, 'err');
+        notify.err('The colours could not be sent.');
+      } finally {
+        busyRef.current = false;
+        setBusy(false);
+      }
+    },
+    [log, transfer],
+  );
+
   const handleApplySettings = useCallback(
     async (values: DeviceSettings) => {
       if (!transfer && !wireless) {
@@ -708,11 +810,17 @@ export function App() {
       updateSettings({
         device: profile.device,
         lighting: profile.lighting,
+        // A profile carries drafts, so nothing imported counts as sent.
+        perKey: { ...profile.perKey, sent: {}, sentBrightness: null },
         clock: { mode: profile.clockMode },
       });
 
       const keys = profile.top.size + profile.fn.size;
-      notify.ok(`Profile loaded: ${keys} key${keys === 1 ? '' : 's'} pending. Nothing sent.`);
+      const painted = Object.keys(profile.perKey.colors).length;
+      const parts: string[] = [];
+      if (keys) parts.push(`${keys} key change${keys === 1 ? '' : 's'}`);
+      if (painted) parts.push(`${painted} painted key${painted === 1 ? '' : 's'}`);
+      notify.ok(`Profile loaded: ${parts.join(' and ') || 'no changes'}. Nothing sent.`);
     },
     [state.layer],
   );
@@ -781,7 +889,7 @@ export function App() {
 
       <main className="mx-auto w-full max-w-page flex-1 px-4 py-6">
         <Tabs value={view} onValueChange={(next) => updateSettings({ view: next as View })}>
-          <ViewTabs view={view} disabled={busy} wireless={device.link === 'wireless'} />
+          <ViewTabs view={view} disabled={busy} />
 
           <TabsContent value="keys">
             <div className="mt-5 grid content-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -856,14 +964,15 @@ export function App() {
 
           <TabsContent value="light">
             <Suspense fallback={<PanelLoading label="lighting" />}>
-              <div className="mt-5 grid content-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-                <LightingPanel
-                  connected={connected}
-                  busy={busy}
-                  status={lightingStatus}
-                  onApply={handleApplyLight}
-                />
-              </div>
+              <LightingPanel
+                connected={connected}
+                busy={busy}
+                wireless={device.link === 'wireless'}
+                status={lightingStatus}
+                perKeyStatus={perKeyStatus}
+                onApply={handleApplyLight}
+                onApplyPerKey={handleApplyPerKey}
+              />
             </Suspense>
           </TabsContent>
 

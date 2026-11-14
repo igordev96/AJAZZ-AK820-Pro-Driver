@@ -44,13 +44,13 @@ number too, which is what to quote in a bug report.
 The app is a Vite, React and TypeScript rewrite of the v1 single-file app, and the wire bytes it
 sends are unchanged. Each feature that writes to the board has been run on an AK820 Pro: the key
 table and both layers, the restore actions, the screen clock and animation channel, the light with
-its 20 effects, the five device settings, and the 2.4 GHz receiver with its records, key patches and
-power-cycle behaviour. Tests 9 to 24 cover the v2 build, and
+its 20 effects and per-key colours, the five device settings, and the 2.4 GHz receiver with its
+records, key patches and power-cycle behaviour. Tests 9 to 25 cover the v2 build, and
 [docs/02-hardware-tests.md](docs/02-hardware-tests.md) records each run, its date and what the board
 did.
 
 The five device settings reset at power-on on either link, so send them again after the keyboard has
-been switched off. The key map, the light and the clock survive a power cycle.
+been switched off. The key map, the light, the per-key colours and the clock survive a power cycle.
 
 ## What it does
 
@@ -61,7 +61,8 @@ been switched off. The key map, the light and the clock survive a power cycle.
 - Sets the clock on the keyboard's screen, from this computer or from a time you pick.
 - Plays a GIF on the screen, up to 140 frames, or one still picture. The screen has no channel over
   2.4 GHz, so that card waits for USB.
-- Sets the keyboard light: 20 effects, colour, brightness, speed and direction.
+- Sets the keyboard light: 20 effects, colour, brightness, speed and direction, or a colour painted
+  on individual keys.
 - Restores the factory top map or clears every Fn override.
 - Runs diagnostics, a deep probe, a mailbox probe and raw test commands from the Advanced drawer.
 
@@ -80,8 +81,9 @@ protocol, but they have not been tried.
 `FDFD` is the 2.4 GHz receiver. It has no feature reports, so the wired path cannot reach it; the
 page talks to it over `0xFF60/0x0061` with output reports instead, and sends the light, the clock,
 the device settings and key changes that way. Key changes go one at a time and the keyboard does
-not confirm them. The receiver has no screen channel, so the screen cards are USB only. The protocol
-is in [docs/01-protocol.md](docs/01-protocol.md) §13.
+not confirm them. The receiver has no image channel, so the animation card is USB only; the clock
+still goes over the receiver. The protocol is in
+[docs/01-protocol.md](docs/01-protocol.md) §13.
 
 ## What it cannot do
 
@@ -92,8 +94,10 @@ are saved in this browser; they are not read from the keyboard.
 The screen is write-only too: the page cannot read the clock or anything else the screen holds.
 The clock has no timezone, so it stays on the wall-clock time you sent.
 
-The light supports 20 effects with colour, brightness, speed and direction. Per-key colours are not
-built yet.
+The light supports 20 effects with colour, brightness, speed and direction, and a per-key map that
+paints a colour on individual keys. The per-key map is USB only, because the receiver has no proven
+path for its 576-byte table. A key you leave unpainted is off while the keyboard runs that map, and
+there is no read-back, so the panel shows the map you last sent.
 
 The knob is input-only, so it cannot be remapped. Bluetooth mode does not expose the
 configuration interface.
@@ -182,7 +186,14 @@ preview uses the real 81-key layout.
 The preview is an approximation. It works from the mode, speed, direction and brightness, so an
 effect that reacts to typing cannot be shown: the panel never sees which key you press.
 
-Per-key colours are not built yet.
+Per-key colours are the other half of **Lighting**: switch to **Per-key**, pick a brush colour,
+and click or drag over the keys. **Fill all** paints every key, **Clear all** returns the whole
+board to off, and the eraser takes the colour off one key at a time. Nothing is sent until
+**Apply colours**.
+
+A key without a colour is off while the board runs the per-key map; the vendor app behaves the
+same way. Brightness is one value for the whole map, so moving it dims every painted key at once.
+The map is USB only, because the 2.4 GHz receiver has no proven channel for the table.
 
 ### Device settings
 

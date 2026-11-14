@@ -20,6 +20,14 @@ describe('settings', () => {
         direction: 3,
       },
       clock: { mode: 'custom' as const },
+      perKey: {
+        colors: { '39': '#ff0000' },
+        sent: { '40': '#00ff00' },
+        brightness: 3,
+        sentBrightness: 2,
+        brush: '#00ff00',
+      },
+      lightTab: 'perKey' as const,
       device: {
         responseLevel: 4,
         sleep: 1 as const,
@@ -112,5 +120,44 @@ describe('settings', () => {
       view: 'keys',
       clock: { mode: 'now' },
     });
+  });
+
+  it('validates the per-key draft key by key', () => {
+    const settings = readSettings(
+      stored({
+        perKey: {
+          colors: {
+            '39': '#FF0000',
+            '40': 'green',
+            '999': '#ffffff',
+            abc: '#ffffff',
+          },
+          sent: { '41': '#0000ff' },
+          brightness: 9,
+          sentBrightness: 12,
+          brush: 'orange',
+        },
+      }),
+    );
+
+    expect(settings.perKey.colors).toEqual({ '39': '#ff0000' });
+    expect(settings.perKey.sent).toEqual({ '41': '#0000ff' });
+    expect(settings.perKey.brightness).toBe(DEFAULT_SETTINGS.perKey.brightness);
+    expect(settings.perKey.sentBrightness).toBe(null);
+    expect(settings.perKey.brush).toBe(DEFAULT_SETTINGS.perKey.brush);
+  });
+
+  it('keeps a valid last-sent brightness', () => {
+    expect(
+      readSettings(stored({ perKey: { sentBrightness: 3, brightness: 5 } })).perKey,
+    ).toMatchObject({ sentBrightness: 3, brightness: 5 });
+    expect(readSettings(stored({ perKey: { sentBrightness: null } })).perKey.sentBrightness).toBe(
+      null,
+    );
+  });
+
+  it('only accepts the known light tabs', () => {
+    expect(readSettings(stored({ lightTab: 'nowhere' })).lightTab).toBe('effect');
+    expect(readSettings(stored({ lightTab: 'perKey' })).lightTab).toBe('perKey');
   });
 });

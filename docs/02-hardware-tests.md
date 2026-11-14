@@ -716,3 +716,34 @@ is running, which is a separate thing from losing them at power-on.
 
 Not tested: nothing in the record is left open. The remaining unknown is the wireless link's own
 sleep behaviour, which is the receiver's, not a setting.
+
+---
+
+## Test 25 — per-key colours (14 Nov 2026)
+
+Build: the working tree for the per-key release, dev server on `http://localhost:5173`, Chrome on
+Windows, the keyboard on USB with the vendor app closed.
+
+The capture of 13 Nov (`usb-perkey-colour.log` in the private lab) had already fixed the layout:
+four bytes a slot, the key index then red, green and blue, with an `0x80` light record first. This
+session proved the page writes it the way the vendor app does.
+
+What the user did, one action at a time:
+
+- Painted W, A, S and D red, then applied. Those four keys lit red and every other key went dark.
+- **Fill all** with blue, applied. The whole board turned blue.
+- **Clear all**, applied. The board went dark, which is what an all-black table means here.
+- Painted Esc green, applied at brightness 1, then applied again at brightness 5. The key dimmed
+  and brightened with the rest of the map, so byte 9 of the mode record is one value for the whole
+  map, not a per-key field.
+- Unplugged the cable, waited five seconds and plugged it back in. The colour map was still on the
+  board.
+- Switched to the 2.4 GHz link. The Per-key tab is disabled and badged `USB only`, and the other
+  views still open; the Screen view still sends the clock.
+
+**Found.** A brightness-only change was not offered as a send: the panel compared colours and
+ignored the brightness it had last sent. It now records that value and counts it as an unsent
+change, and Discard restores it.
+
+Not tested: the 576-byte table over the receiver, which needs its own dongle capture, and a second
+keyboard or profile with a different map.

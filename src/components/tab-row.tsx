@@ -8,6 +8,8 @@ type TabRowProps = {
     readonly label: string;
     /** True when the control behind the tab is unavailable on the current link. */
     readonly badge?: boolean;
+    /** Disables this tab on its own, leaving the others usable. */
+    readonly disabled?: boolean;
   }[];
   /** The sentence beside the tabs, which describes the active one. */
   note: string;
@@ -23,7 +25,7 @@ export function TabRow({ label, items, note, disabled }: TabRowProps) {
           <TabsTrigger
             key={item.id}
             value={item.id}
-            disabled={disabled}
+            disabled={disabled || item.disabled}
             aria-label={item.badge ? `${item.label} (USB only)` : undefined}
           >
             {item.label}

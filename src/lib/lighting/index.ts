@@ -13,3 +13,19 @@ export { lightMotion, lightPhase } from './preview';
 export type { LightKey, LightMotion } from './preview';
 export { describeLight } from './describe';
 export type { LightDescription, LightSettings } from './describe';
+export {
+  PER_KEY_DEFAULT_BRIGHTNESS,
+  PER_KEY_MAX_BRIGHTNESS,
+  PER_KEY_MIN_BRIGHTNESS,
+  PER_KEY_MODE,
+  PER_KEY_SLOT_LIMIT,
+  PER_KEY_TABLE_SIZE,
+  PER_KEY_TRAILER_OFFSET,
+  buildPerKeyRecord,
+  buildPerKeyTable,
+  buildPerKeyTrigger,
+  describePerKey,
+  parseHexColour,
+  toHexColour,
+} from './perKey';
+export type { PerKeyDescription, Rgb } from './perKey';

@@ -17,6 +17,12 @@ const sample = () => {
       ...DEFAULT_SETTINGS,
       device: { ...DEFAULT_SETTINGS.device, responseLevel: 4, disableWindowsKey: true },
       lighting: { ...DEFAULT_SETTINGS.lighting, mode: 5, color: '#00ff00' },
+      perKey: {
+        ...DEFAULT_SETTINGS.perKey,
+        colors: { '39': '#ff0000' },
+        sent: { '40': '#00ff00' },
+        brightness: 3,
+      },
       clock: { mode: 'custom' as const },
     },
   };
@@ -36,6 +42,8 @@ describe('profiles', () => {
     expect(result.profile.device.responseLevel).toBe(4);
     expect(result.profile.device.disableWindowsKey).toBe(true);
     expect(result.profile.lighting.mode).toBe(5);
+    expect(result.profile.perKey.colors).toEqual({ '39': '#ff0000' });
+    expect(result.profile.perKey.brightness).toBe(3);
     expect(result.profile.clockMode).toBe('custom');
   });
 
@@ -47,6 +55,43 @@ describe('profiles', () => {
     expect(raw.profile).toBe(PROFILE_VERSION);
     expect(raw.saved).toBe('2026-11-04T10:00:00.000Z');
     expect(raw.keys.applied).toBeUndefined();
+    expect(raw.perKey.sent).toBeUndefined();
+  });
+
+  it('reads a file written before per-key colours existed', () => {
+    const result = readProfile(
+      JSON.stringify({
+        app: PROFILE_APP,
+        profile: 1,
+        keys: { top: [], fn: [] },
+        device: DEFAULT_SETTINGS.device,
+        lighting: DEFAULT_SETTINGS.lighting,
+        clock: { mode: 'now' },
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.profile.perKey.colors).toEqual({});
+    expect(result.profile.perKey.brightness).toBe(DEFAULT_SETTINGS.perKey.brightness);
+  });
+
+  it('reports painted keys it cannot read', () => {
+    const result = readProfile(
+      JSON.stringify({
+        app: PROFILE_APP,
+        profile: 1,
+        keys: { top: [], fn: [] },
+        device: DEFAULT_SETTINGS.device,
+        lighting: DEFAULT_SETTINGS.lighting,
+        perKey: { colors: { '39': 'red', '999': '#ffffff' }, brightness: 5 },
+        clock: { mode: 'now' },
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.problems.join(' ')).toMatch(/2 painted keys could not be read/);
   });
 
   it('refuses a file that is not one of ours', () => {

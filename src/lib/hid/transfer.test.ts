@@ -397,6 +397,125 @@ describe('TransferService lighting', () => {
   });
 });
 
+const perKeyReplies = (): HidReadResult[] => [
+  reply(0x18, 0x01),
+  reply(0x13, 0x01),
+  reply(0x02, 0x01),
+  reply(0xf0, 0x01),
+  reply(0x18, 0x01),
+  reply(0x23, 0x01),
+  reply(0x02, 0x01),
+  reply(0xf0, 0x01),
+];
+
+describe('TransferService per-key', () => {
+  const trigger = new Uint8Array(64);
+  trigger[0] = 0x80;
+  trigger[9] = 5;
+  trigger[14] = 0xaa;
+  trigger[15] = 0x55;
+
+  const perKeyTable = new Uint8Array(576);
+  perKeyTable[4] = 1;
+  perKeyTable[574] = 0xaa;
+  perKeyTable[575] = 0x55;
+
+  it('sends the 0x80 record, then the table under 04 23', async () => {
+    const { service, transport } = makeService(perKeyReplies());
+
+    const result = await service.sendPerKey(trigger, perKeyTable);
+
+    expect(result.busy).toBeUndefined();
+    expect(result.trigger.map((step) => step.step)).toEqual(['begin', 'announce', 'commit', 'end']);
+    expect(result.table?.map((step) => step.step)).toEqual(['begin', 'announce', 'commit', 'end']);
+    expect(transport.sent).toHaveLength(18);
+
+    const triggerAnnounce = transport.sent[1] ?? new Uint8Array();
+    expect(bytes(triggerAnnounce.subarray(0, 2))).toEqual([0x04, 0x13]);
+    expect(triggerAnnounce[8]).toBe(1);
+    expect(bytes(transport.sent[2] ?? new Uint8Array())).toEqual(bytes(trigger));
+
+    expect(bytes(transport.sent[0] ?? new Uint8Array())).toEqual([0x04, 0x18]);
+    expect(bytes(transport.sent[5] ?? new Uint8Array())).toEqual([0x04, 0x18]);
+
+    const tableAnnounce = transport.sent[6] ?? new Uint8Array();
+    expect(bytes(tableAnnounce.subarray(0, 2))).toEqual([0x04, 0x23]);
+    expect(tableAnnounce[8]).toBe(9);
+
+    for (let index = 0; index < 9; index += 1) {
+      expect(bytes(transport.sent[7 + index] ?? new Uint8Array())).toEqual(
+        bytes(perKeyTable.subarray(index * 64, (index + 1) * 64)),
+      );
+    }
+
+    expect(bytes(transport.sent[16] ?? new Uint8Array())).toEqual([0x04, 0x02]);
+    expect(bytes(transport.sent[17] ?? new Uint8Array())).toEqual([0x04, 0xf0]);
+  });
+
+  it('skips the table when the mode switch is rejected', async () => {
+    const { service, transport } = makeService([
+      reply(0x18, 0x01),
+      reply(0x13, 0x01),
+      reply(0x02, 0xff),
+      reply(0xf0, 0x01),
+    ]);
+
+    const result = await service.sendPerKey(trigger, perKeyTable);
+
+    expect(result.table).toBeNull();
+    expect(transport.sent).toHaveLength(5);
+    expect(transport.sent.some((payload) => payload[1] === 0x23)).toBe(false);
+  });
+
+  it('skips the table when the mode switch never begins', async () => {
+    const { service, transport } = makeService([reply(0x18, 0xff)]);
+
+    const result = await service.sendPerKey(trigger, perKeyTable);
+
+    expect(result.table).toBeNull();
+    expect(transport.sent).toHaveLength(2);
+    expect(bytes(transport.sent[1] ?? new Uint8Array())).toEqual([0x04, 0xf0]);
+  });
+
+  it('reports a rejected table commit after both sequences', async () => {
+    const { service, transport } = makeService([
+      reply(0x18, 0x01),
+      reply(0x13, 0x01),
+      reply(0x02, 0x01),
+      reply(0xf0, 0x01),
+      reply(0x18, 0x01),
+      reply(0x23, 0x01),
+      reply(0x02, 0xff),
+      reply(0xf0, 0x01),
+    ]);
+
+    const result = await service.sendPerKey(trigger, perKeyTable);
+
+    expect(result.table?.at(-1)?.step).toBe('end');
+    expect(result.table?.filter((step) => step.step === 'commit').at(-1)?.reply.status).toBe(0xff);
+    expect(transport.sent).toHaveLength(18);
+  });
+
+  it('shares the lock with a table transfer', async () => {
+    const { service, transport } = makeService(topReplies());
+
+    const first = service.sendTable(table, 'top');
+    const second = await service.sendPerKey(trigger, perKeyTable);
+    await first;
+
+    expect(second).toEqual({ trigger: [], table: null, busy: true });
+    expect(transport.sent).toHaveLength(13);
+    expect(service.isBusy).toBe(false);
+  });
+
+  it('refuses buffers of the wrong size', async () => {
+    const { service } = makeService();
+
+    await expect(service.sendPerKey(new Uint8Array(10), perKeyTable)).rejects.toThrow('64');
+    await expect(service.sendPerKey(trigger, new Uint8Array(575))).rejects.toThrow('576');
+  });
+});
+
 describe('TransferService settings', () => {
   const settings = buildSettingsRecord({
     responseLevel: 4,

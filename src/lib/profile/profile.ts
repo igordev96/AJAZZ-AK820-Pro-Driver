@@ -2,7 +2,7 @@ import { parseRows, serializeLayer, type EditorState, type FnOverride } from '@/
 import type { DeviceSettings } from '@/lib/device';
 import { FN_LOCKED } from '@/lib/keymap';
 import type { LightSettings } from '@/lib/lighting/describe';
-import { readSettings, type ClockMode, type Settings } from '@/lib/settings';
+import { readSettings, type ClockMode, type PerKeySettings, type Settings } from '@/lib/settings';
 
 export const PROFILE_APP = 'ak820-webhid';
 export const PROFILE_VERSION = 1;
@@ -13,6 +13,7 @@ export type ParsedProfile = {
   readonly fn: ReadonlyMap<number, FnOverride>;
   readonly device: DeviceSettings;
   readonly lighting: LightSettings;
+  readonly perKey: PerKeySettings;
   readonly clockMode: ClockMode;
 };
 
@@ -47,6 +48,7 @@ export function buildProfile(
       },
       device: settings.device,
       lighting: settings.lighting,
+      perKey: { colors: settings.perKey.colors, brightness: settings.perKey.brightness },
       clock: { mode: settings.clock.mode },
     },
     null,
@@ -100,16 +102,30 @@ export function readProfile(text: string): ProfileReadResult {
   if (!isRecord(raw.device)) problems.push('The file has no device settings.');
   if (!isRecord(raw.lighting)) problems.push('The file has no lighting settings.');
 
-  if (problems.length) return { ok: false, problems };
+  const perKeyRaw = raw.perKey;
+  if (perKeyRaw !== undefined && !isRecord(perKeyRaw)) {
+    problems.push('The per-key colours could not be read.');
+  }
 
   const settings = readSettings(
     JSON.stringify({
       lighting: raw.lighting,
+      perKey: perKeyRaw,
       device: raw.device,
       clock: raw.clock,
       view: 'keys',
     }),
   );
+
+  const painted = isRecord(perKeyRaw) && isRecord(perKeyRaw.colors) ? perKeyRaw.colors : null;
+  const dropped = painted
+    ? Object.keys(painted).length - Object.keys(settings.perKey.colors).length
+    : 0;
+  if (dropped > 0) {
+    problems.push(`${dropped} painted key${dropped === 1 ? '' : 's'} could not be read.`);
+  }
+
+  if (problems.length) return { ok: false, problems };
 
   return {
     ok: true,
@@ -118,6 +134,7 @@ export function readProfile(text: string): ProfileReadResult {
       fn,
       device: settings.device,
       lighting: settings.lighting,
+      perKey: settings.perKey,
       clockMode: settings.clock.mode,
     },
   };
