@@ -107,6 +107,12 @@ WebHID won because it is the only option with zero install and a stable API for 
     was ignored, and a beat 10 ms before the trigger could not wake a receiver quiet for half a
     minute. The page now beats every ten seconds while connected and settles 500 ms after an
     on-demand beat. Test 27.
+21. **Screen tabs and a log drawer** - the Screen view gained a Clock and an Animation tab, so the
+    animation finally has the big square. The page draws the 128 × 128 RGB565 frames it would send,
+    follows the frame being written during an upload, and keeps the picked file while the tab is
+    open. The log moved from the footer into the same modal drawer as Advanced, which is readable
+    when a connection fails; the footer keeps GitHub and the build number. No bytes changed, so
+    there is no new hardware test.
 
 ## 4. Lessons that cost time
 
@@ -157,7 +163,7 @@ WebHID won because it is the only option with zero install and a stable API for 
   question from the user was whether Fn had been remapped. Keep one meaning per visual signal.
 * **An offline copy carries old bytes.** Once a service worker can keep an old build alive, that
   build is old protocol constants, so "which version is this" stops being a detail. The build number
-  now sits in the log footer, and a new worker waits for the reload instead of claiming the tab on
+  now sits in the page footer, and a new worker waits for the reload instead of claiming the tab on
   activation.
 * **A deploy can strand a tab.** Netlify replaces its hashed files on every deploy, so a tab or a
   bookmark holding an old `index.html` would ask for assets that no longer exist. Precaching the

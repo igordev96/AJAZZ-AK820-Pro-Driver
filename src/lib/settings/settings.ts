@@ -26,6 +26,9 @@ export type ClockMode = 'now' | 'custom';
 /** Which half of the Light view is open: the effects or the per-key board. */
 export type LightTab = 'effect' | 'perKey';
 
+/** Which half of the Screen view is open: the clock or the animation. */
+export type ScreenTab = 'clock' | 'animation';
+
 /**
  * Per-key colours: the draft being painted, the map last sent to the board, and
  * the brightness the mode-`0x80` record carries. Both maps hold only keys with
@@ -52,6 +55,7 @@ export type Settings = {
   readonly lighting: LightSettings;
   readonly perKey: PerKeySettings;
   readonly lightTab: LightTab;
+  readonly screenTab: ScreenTab;
   readonly clock: { readonly mode: ClockMode };
   readonly device: DeviceSettings;
   readonly deviceLastSent: DeviceLastSent | null;
@@ -75,6 +79,7 @@ export const DEFAULT_SETTINGS: Settings = {
     brush: '#ff8000',
   },
   lightTab: 'effect',
+  screenTab: 'clock',
   clock: { mode: 'now' },
   device: DEFAULT_DEVICE_SETTINGS,
   deviceLastSent: null,
@@ -211,6 +216,7 @@ export function readSettings(text: string | null): Settings {
     lighting: readLighting(raw.lighting),
     perKey: readPerKey(raw.perKey),
     lightTab: raw.lightTab === 'perKey' ? 'perKey' : 'effect',
+    screenTab: raw.screenTab === 'animation' ? 'animation' : 'clock',
     clock: { mode: clock === 'custom' ? 'custom' : 'now' },
     device: readDevice(raw.device),
     deviceLastSent: readDeviceLastSent(raw.deviceLastSent),

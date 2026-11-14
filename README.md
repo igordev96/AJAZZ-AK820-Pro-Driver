@@ -36,8 +36,8 @@ WebHID is desktop only.
 
 A cached copy does not go stale silently. When a newer build is ready, the strip under the header
 names the build you are running and offers **Reload**, and nothing changes under the open page until
-you press it. Drafts live in this browser, so a reload keeps them. The log footer shows the build
-number too, which is what to quote in a bug report.
+you press it. Drafts live in this browser, so a reload keeps them. The footer under the page shows
+the build number too, which is what to quote in a bug report.
 
 ## Status
 
@@ -154,7 +154,7 @@ overrides** clears the layer.
 
 ### The screen clock
 
-**Screen** opens the clock view. **Now** sends this computer's local time; **Custom** takes a date
+**Screen** opens on the Clock tab. **Now** sends this computer's local time; **Custom** takes a date
 and time you pick. One write sets the screen clock, and no key mapping is touched.
 
 The keyboard has no timezone, so the clock follows the time you send. A daylight saving change
@@ -163,12 +163,14 @@ time** when you want it.
 
 ### The screen animation
 
-**Screen animation** takes a GIF, or one still picture, and plays it on the screen. Frames are
-scaled to 128 × 128 in the browser and sent with their own delays, clamped to 30–500 ms. The
-keyboard holds at most 140 frames; longer GIFs use the first 140 and the card says so.
+The **Animation** tab takes a GIF, or one still picture, and plays it on the screen. The big square
+plays the frames the page would send, at the screen's own 128 × 128: the square crop, the delays
+clamped to 30–500 ms, and the first 140 frames. The card beside it sends them and says what the file
+holds.
 
-The upload takes about 50 seconds for 30 frames and about four minutes for 140, so the card shows a
-progress bar. A picture never leaves the page.
+While an upload runs, the square stops on the frame being written and the card fills its progress
+bar. The upload takes about 50 seconds for 30 frames and about four minutes for 140. A picture never
+leaves the page.
 
 Let an upload finish. The keyboard is busy until the commit, and interrupting one leaves the screen
 stuck on its loading indicator until you unplug the keyboard; the frames already sent stay on the
@@ -247,11 +249,11 @@ clear site data, and they do not travel to another browser or machine.
 
 ## What this browser remembers
 
-The view you were on, the clock source, the light settings, the device settings you last chose and
-when those were last sent are stored under `ak820.settings`, so a reload returns you to the same
-place with the same values ready to send. They are read back field by field: a value that stops
-making sense, such as an effect that no longer exists, falls back to its default instead of breaking
-the page.
+The view you were on, the open Light and Screen tabs, the clock source, the light settings, the device
+settings you last chose and when those were last sent are stored under `ak820.settings`, so a reload
+returns you to the same place with the same values ready to send. They are read back field by field:
+a value that stops making sense, such as an effect that no longer exists, falls back to its default
+instead of breaking the page.
 
 Both keymap layers are stored together under `ak820.layers`, each in two parts: the draft you were
 editing and the table the last confirmed upload sent. A reload shows your drafts on the top layer

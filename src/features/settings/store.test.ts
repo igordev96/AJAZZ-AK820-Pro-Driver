@@ -31,6 +31,7 @@ const custom: Settings = {
     brush: '#00ff00',
   },
   lightTab: 'perKey',
+  screenTab: 'animation',
   clock: { mode: 'custom' },
   device: {
     responseLevel: 4,
@@ -58,6 +59,24 @@ describe('createSettingsStore', () => {
     const store = createSettingsStore(memoryStorage('{ oops'));
 
     expect(store.get().view).toBe('keys');
+  });
+
+  it('falls back to the clock when the stored screen tab is unknown', () => {
+    const stored = JSON.parse(writeSettings({ ...custom, screenTab: 'animation' }));
+    stored.screenTab = 'something-else';
+    const store = createSettingsStore(memoryStorage(JSON.stringify(stored)));
+
+    expect(store.get().screenTab).toBe('clock');
+  });
+
+  it('remembers the open screen tab', () => {
+    const storage = memoryStorage();
+    const store = createSettingsStore(storage);
+
+    store.set({ screenTab: 'animation' });
+    store.flush();
+
+    expect(createSettingsStore(storage).get().screenTab).toBe('animation');
   });
 
   it('tells its listeners about a change', () => {

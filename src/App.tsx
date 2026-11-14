@@ -11,6 +11,7 @@ import {
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Toaster } from '@/components/ui/sonner';
 import { UpdateNotice } from '@/components/update-notice';
+import { PageFooter } from '@/components/page-footer';
 import { AppHeader } from '@/features/device/AppHeader';
 import { ViewTabs, type View } from '@/features/device/ViewTabs';
 import { updateSettings, useSettings } from '@/features/settings/useSettings';
@@ -20,7 +21,7 @@ import { KeymapBoard } from '@/features/editor/KeymapBoard';
 import { LayerTabs } from '@/features/editor/LayerTabs';
 import { PendingBar } from '@/features/editor/PendingBar';
 import { WriteRules } from '@/features/editor/WriteRules';
-import { LogPanel } from '@/features/log/LogPanel';
+import { LogDrawer } from '@/features/log/LogDrawer';
 import { useLog } from '@/features/log/useLog';
 import type { LightingStatus, LightingValues } from '@/features/lighting/LightingPanel';
 import type { PerKeyStatus } from '@/features/lighting/PerKeyPanel';
@@ -140,6 +141,9 @@ export function App() {
   // out through Radix Presence instead of vanishing.
   const [advancedMounted, setAdvancedMounted] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
+  // The drawer mounts on first use and stays mounted, so closing it can animate
+  // out through Radix Presence instead of vanishing.
+  const [logMounted, setLogMounted] = useState(false);
   const view = useSettings((settings) => settings.view);
   const deviceLastSent = useSettings((settings) => settings.deviceLastSent);
   const settings = useSettings((stored) => stored);
@@ -446,8 +450,13 @@ export function App() {
 
         if (status === STATUS.ok) {
           setAnimationStatus({ kind: 'ok', message: 'Sent. The screen is playing the animation.' });
-          log(`Screen animation sent (${frames.length} frames).`, 'ok');
-          notify.ok(`Animation sent, ${frames.length} frames.`);
+          log(
+            `Screen animation sent (${frames.length} ${frames.length === 1 ? 'frame' : 'frames'}).`,
+            'ok',
+          );
+          notify.ok(
+            `Animation sent, ${frames.length} ${frames.length === 1 ? 'frame' : 'frames'}.`,
+          );
           return;
         }
 
@@ -781,6 +790,11 @@ export function App() {
 
   const handleCloseAdvanced = useCallback(() => setAdvancedOpen(false), []);
 
+  const handleOpenLog = useCallback(() => {
+    setLogMounted(true);
+    setLogOpen(true);
+  }, []);
+
   const handleAdvancedBusy = useCallback((value: boolean) => {
     busyRef.current = value;
     setBusy(value);
@@ -889,7 +903,6 @@ export function App() {
         supported={device.supported}
         canReconnect={device.canReconnect}
         busy={busy}
-        logOpen={logOpen}
         onConnect={handleConnect}
         onChooseAnother={handleChooseAnother}
         onDisconnect={handleDisconnect}
@@ -898,7 +911,7 @@ export function App() {
         profileDisabled={busy}
         onExportProfile={handleExportProfile}
         onImportProfile={handleImportProfile}
-        onToggleLog={() => setLogOpen((open) => !open)}
+        onOpenLog={handleOpenLog}
       />
 
       {/* Above the connection banner: a build that is one release behind is the
@@ -976,20 +989,18 @@ export function App() {
 
           <TabsContent value="screen">
             <Suspense fallback={<PanelLoading label="screen" />}>
-              <div className="mt-5 grid content-start gap-5 lg:grid-cols-[minmax(0,440px)_340px] lg:justify-center">
-                <ScreenPanel
-                  connected={connected}
-                  screenReady={device.screenFound}
-                  busy={busy}
-                  status={timeStatus}
-                  animationStatus={animationStatus}
-                  animationProgress={animationProgress}
-                  animationSending={animationSending}
-                  onSend={handleSendTime}
-                  onSendAnimation={handleSendAnimation}
-                  wireless={device.link === 'wireless'}
-                />
-              </div>
+              <ScreenPanel
+                connected={connected}
+                screenReady={device.screenFound}
+                busy={busy}
+                status={timeStatus}
+                animationStatus={animationStatus}
+                animationProgress={animationProgress}
+                animationSending={animationSending}
+                onSend={handleSendTime}
+                onSendAnimation={handleSendAnimation}
+                wireless={device.link === 'wireless'}
+              />
             </Suspense>
           </TabsContent>
 
@@ -1023,12 +1034,11 @@ export function App() {
         </Tabs>
       </main>
 
-      <LogPanel
-        entries={entries}
-        open={logOpen}
-        onToggle={() => setLogOpen((open) => !open)}
-        onClear={clearLog}
-      />
+      <PageFooter />
+
+      {logMounted ? (
+        <LogDrawer open={logOpen} onOpenChange={setLogOpen} entries={entries} onClear={clearLog} />
+      ) : null}
 
       {advancedMounted ? (
         <Suspense fallback={null}>

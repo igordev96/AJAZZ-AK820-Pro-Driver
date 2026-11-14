@@ -28,6 +28,7 @@ describe('settings', () => {
         brush: '#00ff00',
       },
       lightTab: 'perKey' as const,
+      screenTab: 'animation' as const,
       device: {
         responseLevel: 4,
         sleep: 1 as const,
@@ -159,5 +160,10 @@ describe('settings', () => {
   it('only accepts the known light tabs', () => {
     expect(readSettings(stored({ lightTab: 'nowhere' })).lightTab).toBe('effect');
     expect(readSettings(stored({ lightTab: 'perKey' })).lightTab).toBe('perKey');
+  });
+
+  it('only accepts the known screen tabs', () => {
+    expect(readSettings(stored({ screenTab: 'nowhere' })).screenTab).toBe('clock');
+    expect(readSettings(stored({ screenTab: 'animation' })).screenTab).toBe('animation');
   });
 });

@@ -1,9 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { APP_VERSION } from '@/lib/build';
 import { notify } from '@/lib/toast';
-import { LogPanel } from './LogPanel';
+import { LogDrawer } from './LogDrawer';
 import type { LogEntry } from './useLog';
 
 vi.mock('@/lib/toast', () => ({
@@ -15,9 +14,14 @@ const entries: LogEntry[] = [
   { id: 2, time: '10:00:01', level: 'ok', message: 'device opened' },
 ];
 
-const renderPanel = (overrides: { entries?: LogEntry[] } = {}) =>
+const renderDrawer = (overrides: { entries?: LogEntry[]; onClear?: () => void } = {}) =>
   render(
-    <LogPanel entries={overrides.entries ?? entries} open onToggle={vi.fn()} onClear={vi.fn()} />,
+    <LogDrawer
+      open
+      onOpenChange={vi.fn()}
+      entries={overrides.entries ?? entries}
+      onClear={overrides.onClear ?? vi.fn()}
+    />,
   );
 
 beforeEach(() => {
@@ -25,26 +29,20 @@ beforeEach(() => {
   vi.mocked(notify.err).mockClear();
 });
 
-describe('LogPanel', () => {
+describe('LogDrawer', () => {
   it('disables Copy while the log is empty', () => {
-    renderPanel({ entries: [] });
+    renderDrawer({ entries: [] });
 
     expect(screen.getByRole('button', { name: 'Copy' })).toBeDisabled();
   });
 
   it('confirms a copy with the line count', async () => {
     const user = userEvent.setup();
-    renderPanel();
+    renderDrawer();
 
     await user.click(screen.getByRole('button', { name: 'Copy' }));
 
     expect(notify.ok).toHaveBeenCalledWith('Log copied, 2 lines.');
-  });
-
-  it('names the build that is running', () => {
-    renderPanel();
-
-    expect(screen.getByText(`build ${APP_VERSION}`)).toBeInTheDocument();
   });
 
   it('says so when the clipboard is refused', async () => {
@@ -56,10 +54,26 @@ describe('LogPanel', () => {
       value: { writeText },
       configurable: true,
     });
-    renderPanel();
+    renderDrawer();
 
     await user.click(screen.getByRole('button', { name: 'Copy' }));
 
     expect(notify.err).toHaveBeenCalledWith('The clipboard was refused. The log stays on screen.');
+  });
+
+  it('says there is no activity yet', () => {
+    renderDrawer({ entries: [] });
+
+    expect(screen.getByRole('log')).toHaveTextContent('No activity yet.');
+  });
+
+  it('runs the clear action it is given', async () => {
+    const user = userEvent.setup();
+    const onClear = vi.fn();
+    renderDrawer({ onClear });
+
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
+
+    expect(onClear).toHaveBeenCalledTimes(1);
   });
 });

@@ -63,7 +63,11 @@ describe('App screen view', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Screen' }));
     expect(screen.queryByRole('group', { name: /keyboard board/i })).not.toBeInTheDocument();
-    expect(await screen.findByRole('img', { name: /screen preview showing/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('img', { name: /screen preview showing/i }, { timeout: 5000 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Clock' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Animation' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: 'Keys' }));
     expect(screen.getByRole('group', { name: /keyboard board/i })).toBeInTheDocument();

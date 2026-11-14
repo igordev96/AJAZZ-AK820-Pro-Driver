@@ -119,9 +119,10 @@ describe('App over the 2.4 GHz receiver', () => {
     await connect(user);
 
     await user.click(screen.getByRole('tab', { name: /screen/i }));
+    await user.click(await screen.findByRole('tab', { name: /animation/i }));
 
     expect(await screen.findByText('USB only')).toBeInTheDocument();
-    expect(screen.getByText(/has no screen channel/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/has no screen channel/i)).not.toHaveLength(0);
     expect(screen.getByLabelText('Choose a file')).toBeDisabled();
     expect(screen.getByRole('button', { name: /send animation/i })).toBeDisabled();
     // The view tab carries no link badge: the clock still works over the receiver.

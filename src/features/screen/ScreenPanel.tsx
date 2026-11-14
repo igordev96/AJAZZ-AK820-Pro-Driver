@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
+import { TabRow } from '@/components/tab-row';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { updateSettings, useSettings } from '@/features/settings/useSettings';
+import type { ScreenTab } from '@/lib/settings';
 import { AnimationCard, type ScreenStatus } from './AnimationCard';
+import { AnimationStage } from './AnimationStage';
 import { ClockCard, type ClockMode, type TimeStatus } from './ClockCard';
 import { ScreenPreview } from './ScreenPreview';
+import { useAnimationFile } from './useAnimationFile';
 
 type ScreenPanelProps = {
   connected: boolean;
@@ -31,8 +36,12 @@ export function ScreenPanel({
   wireless = false,
 }: ScreenPanelProps) {
   const mode = useSettings((settings) => settings.clock.mode);
+  const screenTab = useSettings((settings) => settings.screenTab);
   const [now, setNow] = useState(() => new Date());
   const [customAt, setCustomAt] = useState<Date | null>(null);
+  // The file lives here, above the tabs, so looking at the clock does not throw
+  // the preview away. Nothing about it is stored past a reload.
+  const { picked, error, pick } = useAnimationFile();
 
   useEffect(() => {
     if (mode !== 'now') return;
@@ -53,37 +62,79 @@ export function ScreenPanel({
   };
 
   return (
-    <>
-      <section className="flex min-w-0 flex-col gap-4">
-        <ScreenPreview time={preview} connected={connected} />
-        <p className="max-w-prose text-xs leading-relaxed text-muted">
-          One write sets the clock. Nothing else on the keyboard changes, and no key mapping is
-          touched.
-        </p>
-      </section>
+    <Tabs
+      value={screenTab}
+      onValueChange={(next) => updateSettings({ screenTab: next as ScreenTab })}
+      className="mt-5"
+    >
+      <TabRow
+        label="Screen panel"
+        items={[
+          { id: 'clock', label: 'Clock' },
+          { id: 'animation', label: 'Animation', badge: wireless },
+        ]}
+        note={
+          screenTab === 'animation'
+            ? wireless
+              ? 'Preview the frames this page would send. This link has no screen channel, so sending waits for USB.'
+              : 'Preview the frames this page would send, then send them.'
+            : 'Set the clock from this computer, or from a time you pick.'
+        }
+        disabled={busy || animationSending}
+      />
 
-      <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
-        <ClockCard
-          mode={mode}
-          preview={preview}
-          connected={connected}
-          busy={busy}
-          status={status}
-          onModeChange={changeMode}
-          onCustomChange={setCustomAt}
-          onSend={send}
-        />
-        <AnimationCard
-          connected={connected}
-          screenReady={screenReady}
-          busy={busy}
-          sending={animationSending}
-          status={animationStatus}
-          progress={animationProgress}
-          onSend={onSendAnimation}
-          wireless={wireless}
-        />
-      </div>
-    </>
+      <TabsContent value="clock">
+        <div className="mt-5 grid content-start gap-5 lg:grid-cols-[minmax(0,440px)_340px] lg:justify-center">
+          <section className="flex min-w-0 flex-col gap-4">
+            <ScreenPreview time={preview} connected={connected} />
+            <p className="max-w-prose text-xs leading-relaxed text-muted">
+              One write sets the clock. Nothing else on the keyboard changes, and no key mapping is
+              touched.
+            </p>
+          </section>
+
+          <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
+            <ClockCard
+              mode={mode}
+              preview={preview}
+              connected={connected}
+              busy={busy}
+              status={status}
+              onModeChange={changeMode}
+              onCustomChange={setCustomAt}
+              onSend={send}
+            />
+          </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="animation">
+        <div className="mt-5 grid content-start gap-5 lg:grid-cols-[minmax(0,440px)_340px] lg:justify-center">
+          <section className="flex min-w-0 flex-col gap-4">
+            <AnimationStage
+              picked={picked}
+              sending={animationSending}
+              progress={animationProgress}
+            />
+          </section>
+
+          <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
+            <AnimationCard
+              connected={connected}
+              screenReady={screenReady}
+              busy={busy}
+              sending={animationSending}
+              status={animationStatus}
+              progress={animationProgress}
+              picked={picked}
+              error={error}
+              onPick={pick}
+              onSend={onSendAnimation}
+              wireless={wireless}
+            />
+          </div>
+        </div>
+      </TabsContent>
+    </Tabs>
   );
 }

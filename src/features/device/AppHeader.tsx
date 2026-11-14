@@ -11,13 +11,12 @@ type AppHeaderProps = {
   supported: boolean;
   canReconnect: boolean;
   busy: boolean;
-  logOpen: boolean;
   onConnect: () => void;
   onChooseAnother: () => void;
   onDisconnect: () => void;
   onAdvanced: () => void;
   advancedDisabled: boolean;
-  onToggleLog: () => void;
+  onOpenLog: () => void;
   profileDisabled: boolean;
   onExportProfile: ProfileMenuProps['onExport'];
   onImportProfile: ProfileMenuProps['onImport'];
@@ -30,13 +29,12 @@ export function AppHeader({
   supported,
   canReconnect,
   busy,
-  logOpen,
   onConnect,
   onChooseAnother,
   onDisconnect,
   onAdvanced,
   advancedDisabled,
-  onToggleLog,
+  onOpenLog,
   profileDisabled,
   onExportProfile,
   onImportProfile,
@@ -162,13 +160,7 @@ export function AppHeader({
             <span className="hidden sm:inline">Advanced</span>
           </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-expanded={logOpen}
-            aria-controls="log-panel"
-            onClick={onToggleLog}
-          >
+          <Button variant="ghost" size="sm" aria-haspopup="dialog" onClick={onOpenLog}>
             <Terminal aria-hidden="true" />
             Log
           </Button>

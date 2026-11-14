@@ -10,6 +10,7 @@ export type {
   DeviceLastSent,
   LightTab,
   PerKeySettings,
+  ScreenTab,
   Settings,
   View,
 } from './settings';

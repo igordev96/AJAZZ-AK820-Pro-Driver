@@ -16,3 +16,4 @@ export {
 export type { AnimationInput } from './animation';
 export { decodeAnimation, supportsAnimationDecoding } from './decode';
 export type { DecodedAnimation } from './decode';
+export { rgb565ToRgba } from './render';

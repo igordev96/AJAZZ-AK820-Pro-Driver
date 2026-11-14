@@ -129,7 +129,7 @@ are off, so a new build never takes over an open page. The manifest is hand-writ
 
 A newer build is downloaded and then waits in the worker. The strip under the header says which
 build is running and offers **Reload**; nothing changes under an open page until that button is
-pressed. The log footer carries the same version.
+pressed. The footer carries the same version.
 
 Only Chromium desktop browsers install it, which is also the only place WebHID exists: Firefox,
 Safari and every mobile browser can show the page but cannot use it. `npm run dev` does not

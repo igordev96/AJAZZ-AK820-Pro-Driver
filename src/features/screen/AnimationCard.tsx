@@ -1,30 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { StatusNote } from '@/components/status-note';
 import { UsbOnlyBadge } from '@/components/usb-only-badge';
-import {
-  SCREEN_BLOCKS_PER_FRAME,
-  SCREEN_HEIGHT,
-  SCREEN_MAX_FRAMES,
-  SCREEN_WIDTH,
-  decodeAnimation,
-  encodeRgb565,
-} from '@/lib/screen';
+import { SCREEN_BLOCKS_PER_FRAME, SCREEN_MAX_FRAMES } from '@/lib/screen';
 import { cn } from '@/lib/utils';
+import type { PickedAnimation } from './useAnimationFile';
 
 export type ScreenStatus =
   | { readonly kind: 'idle' }
   | { readonly kind: 'ok'; readonly message: string }
   | { readonly kind: 'err'; readonly message: string };
-
-type Picked = {
-  readonly frames: Uint8Array[];
-  readonly delays: number[];
-  readonly frameCount: number;
-  readonly truncated: boolean;
-  readonly url: string;
-  readonly name: string;
-};
 
 type AnimationCardProps = {
   connected: boolean;
@@ -33,43 +17,14 @@ type AnimationCardProps = {
   sending: boolean;
   status: ScreenStatus;
   progress: { readonly sent: number; readonly total: number } | null;
+  /** The decoded file, held by the panel so the stage and this card share it. */
+  picked: PickedAnimation | null;
+  error: string | null;
+  onPick: (file: File | undefined) => void;
   onSend: (frames: Uint8Array[], delays: number[]) => void;
   /** True over the 2.4 GHz receiver, where the keyboard exposes no screen channel. */
   wireless?: boolean;
 };
-
-const stillDelay = 100;
-
-async function decodeStill(file: File): Promise<Omit<Picked, 'url' | 'name'>> {
-  const bitmap = await createImageBitmap(file);
-  try {
-    const canvas = document.createElement('canvas');
-    canvas.width = SCREEN_WIDTH;
-    canvas.height = SCREEN_HEIGHT;
-    const context = canvas.getContext('2d', { willReadFrequently: true });
-    if (!context) throw new Error('no canvas');
-
-    const scale = Math.max(SCREEN_WIDTH / bitmap.width, SCREEN_HEIGHT / bitmap.height);
-    const width = bitmap.width * scale;
-    const height = bitmap.height * scale;
-    context.drawImage(
-      bitmap,
-      (SCREEN_WIDTH - width) / 2,
-      (SCREEN_HEIGHT - height) / 2,
-      width,
-      height,
-    );
-
-    const frame = encodeRgb565(
-      context.getImageData(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT).data,
-      SCREEN_WIDTH,
-      SCREEN_HEIGHT,
-    );
-    return { frames: [frame], delays: [stillDelay], frameCount: 1, truncated: false };
-  } finally {
-    bitmap.close();
-  }
-}
 
 export function AnimationCard({
   connected,
@@ -78,48 +33,12 @@ export function AnimationCard({
   sending,
   status,
   progress,
+  picked,
+  error,
+  onPick,
   onSend,
   wireless = false,
 }: AnimationCardProps) {
-  const [picked, setPicked] = useState<Picked | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const urlRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
-    };
-  }, []);
-
-  const pick = async (file: File | undefined) => {
-    if (!file) return;
-    setError(null);
-
-    try {
-      const animated = file.type === 'image/gif' || /\.gif$/i.test(file.name);
-      const decoded = animated
-        ? await decodeAnimation(file).then((result) => ({
-            frames: result.frames,
-            delays: result.delaysMs,
-            frameCount: result.frameCount,
-            truncated: result.truncated,
-          }))
-        : await decodeStill(file);
-
-      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
-      const url = URL.createObjectURL(file);
-      urlRef.current = url;
-      setPicked({ ...decoded, url, name: file.name });
-    } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : 'That file could not be read. Use a GIF, PNG, JPEG or WebP.',
-      );
-      setPicked(null);
-    }
-  };
-
   const totalMs = picked ? picked.delays.reduce((sum, delay) => sum + delay, 0) : 0;
   const blocks = picked ? picked.frames.length * SCREEN_BLOCKS_PER_FRAME + 1 : 0;
   // Measured on the board: a 4096-byte output report plus the 150 ms gap lands
@@ -127,12 +46,6 @@ export function AnimationCard({
   const estimateSeconds = Math.ceil((blocks * 215) / 1000);
   const percent =
     progress && progress.total > 0 ? Math.round((progress.sent / progress.total) * 100) : 0;
-  const framesDone = progress
-    ? Math.min(
-        picked?.frames.length ?? 0,
-        Math.max(0, Math.floor((progress.sent - 1) / SCREEN_BLOCKS_PER_FRAME)),
-      )
-    : 0;
 
   return (
     <aside className="rounded-panel border border-line bg-surface p-4">
@@ -159,27 +72,22 @@ export function AnimationCard({
             className="sr-only"
             disabled={busy || sending || wireless}
             onChange={(event) => {
-              void pick(event.currentTarget.files?.[0]);
+              onPick(event.currentTarget.files?.[0]);
               event.currentTarget.value = '';
             }}
           />
         </label>
-
-        {picked ? (
-          <img
-            src={picked.url}
-            alt=""
-            className="size-12 rounded-key border border-line object-cover"
-            style={{ imageRendering: 'pixelated' }}
-          />
-        ) : null}
       </div>
 
       {picked ? (
         <p className="mt-2 text-[11px] leading-relaxed text-muted">
-          <span className="text-ivory/90">{picked.frameCount} frames</span>,{' '}
+          <span className="text-ivory/90">
+            {picked.frames.length} {picked.frames.length === 1 ? 'frame' : 'frames'},
+          </span>{' '}
           {(totalMs / 1000).toFixed(1)} s, about {estimateSeconds} s to send.
-          {picked.truncated ? ` Only the first ${SCREEN_MAX_FRAMES} frames are used.` : ''}
+          {picked.truncated
+            ? ` The file holds ${picked.frameCount}; the screen takes the first ${SCREEN_MAX_FRAMES}.`
+            : ''}
         </p>
       ) : null}
 
@@ -209,9 +117,7 @@ export function AnimationCard({
               style={{ width: `${percent}%` }}
             />
           </div>
-          <p className="mt-1 font-mono text-[10px] text-muted">
-            frame {framesDone}/{picked?.frames.length ?? 0}, {percent}%
-          </p>
+          <p className="mt-1 font-mono text-[10px] text-muted">{percent}%</p>
         </div>
       ) : null}
 
@@ -240,7 +146,7 @@ export function AnimationCard({
         {wireless ? (
           <p className="mt-2 border-l-2 border-brass/50 pl-3 text-[11px] leading-relaxed text-muted">
             The 2.4 GHz receiver has no screen channel, so this card waits for the USB cable. The
-            clock above is sent on both links.
+            clock on the other tab is sent on both links.
           </p>
         ) : null}
       </div>

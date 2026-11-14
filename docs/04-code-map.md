@@ -13,11 +13,11 @@ src/App.tsx              page composition, upload and restore, drawer state
 src/styles/globals.css   colour, type and radius tokens, bench mat, base styles
 src/components/ui/       Button, Input, Popover, Calendar, Tabs, Checkbox, Slider, Select,
                          Command, Combobox, ToggleGroup, Sheet, Sonner
-src/components/          StatusNote, TabRow, UsbOnlyBadge, UpdateNotice
+src/components/          StatusNote, TabRow, UsbOnlyBadge, UpdateNotice, PageFooter
 src/lib/keymap/          constants, factory keys, record encoding, names, parsing, table
 src/lib/hid/             protocol, client, collections, wireless, WebHID types, transfer, time,
                          probes, raw
-src/lib/screen/          RGB565, frame layout, animation payload
+src/lib/screen/          RGB565, frame rendering, frame layout, animation payload
 src/lib/lighting/        the 64-byte record, the per-key table, preview motion, wording
 src/lib/device/          the 64-byte settings record, response levels, sleep options
 src/lib/editor/          row state, reducer, validation, persistence, per-key patches
@@ -36,9 +36,10 @@ public/screenshots/      the two captures the install dialog shows, outside the 
 src/features/device/     useDevice, AppHeader, ViewTabs, DevicePanel
 src/features/editor/     LayerTabs, KeymapBoard, KeyInspector, PendingBar, WriteRules, keyLabels
 src/features/profile/    ProfileMenu: export, import and the confirm step
-src/features/screen/     ScreenPanel, ScreenPreview, ClockCard, DateTimePicker, AnimationCard
+src/features/screen/     ScreenPanel, ScreenPreview, ClockCard, DateTimePicker, AnimationCard,
+                         AnimationStage, useAnimationFile
 src/features/lighting/   LightingPanel, LightPreview, PerKeyPanel, PerKeyBoard
-src/features/log/        useLog, LogPanel
+src/features/log/        useLog, LogDrawer
 src/features/settings/   the settings store and its React hook
 src/features/advanced/   AdvancedDrawer
 src/test/                Vitest setup, fake HID device and fake clock
@@ -254,17 +255,23 @@ with a count for the rest. The list stays visible while disconnected, and it hid
 restore question is up. The restore confirmation lives beside it, and the log drawer keeps every
 transport line.
 
-`ViewTabs` switches the workbench between the board and the screen. The screen view keeps the same
-two-column grid: the 128 × 128 preview takes the board's place, and `ClockCard` takes the
-inspector's. The card owns the Now/Custom choice, the live clock and the send status. A clock write
-is never started by connecting or by switching views; it needs the **Send time** button.
+`ViewTabs` switches the workbench between the board and the screen. The screen view has a second tab
+row of its own, **Clock** and **Animation**, and keeps the same two-column grid: the 128 × 128 panel
+takes the board's place, and the matching card takes the inspector's. On the Clock tab `ClockCard`
+owns the Now/Custom choice, the live clock and the send status. A clock write is never started by
+connecting or by switching views; it needs the **Send time** button.
 
-`AnimationCard` sits under the clock card. It decodes a GIF with the browser's `ImageDecoder`
-(`src/lib/screen/decode.ts`), composites each frame to 128 × 128, converts it to RGB565 and keeps
-the delays. The file never leaves the page. Uploads show block progress; there is no cancel,
-because the firmware cannot abort a stream it has started. The card is disabled when WebHID did not
-return the `0xFF68` interface, and on the 2.4 GHz link it is disabled, badged `USB only` and explains
-that the receiver has no screen channel.
+On the Animation tab `AnimationStage` draws the frames the page would send. `useAnimationFile`
+decodes the picked GIF with the browser's `ImageDecoder` (`src/lib/screen/decode.ts`), composites
+each frame to 128 × 128, converts it to RGB565 and keeps the delays; `rgb565ToRgba` in
+`src/lib/screen/render.ts` expands a frame for the canvas. The file lives in `ScreenPanel`, above
+the tabs, so looking at the clock does not throw the preview away, and nothing is stored past a
+reload. The stage loops the frames with their own delays, starts paused under
+`prefers-reduced-motion`, and while an upload runs it stops on the frame the current block count
+points at. The file never leaves the page. Uploads show block progress; there is no cancel, because
+the firmware cannot abort a stream it has started. The card is disabled when WebHID did not return
+the `0xFF68` interface, and on the 2.4 GHz link it is disabled, badged `USB only` and explains that
+the receiver has no screen channel; the Animation tab carries the same brass dot.
 
 `LightingPanel` shows the 20 effects. Each mode's controls come from the vendor database:
 colour and Colourful, brightness, speed, and the direction pair for its axis. The controls are
@@ -301,7 +308,7 @@ text to `downloadText`; import reads the file through `readProfile`, shows the c
 device, lighting and clock-mode values to the settings store. The menu is disabled while a transfer
 runs, and a bad file lists its problems instead of applying half of it.
 
-The `Toaster` mounts once in `App` and sits bottom right, above the log footer. Tones come from the
+The `Toaster` mounts once in `App` and sits bottom right, above the page footer. Tones come from the
 sonner variables set in `src/components/ui/sonner.tsx`: surface background, sage for success, rust
 for failure, brass for a warning. Sends confirm through both the toast and the inline `StatusNote`,
 and the toast stays the short version.
@@ -310,7 +317,7 @@ and the toast stays the short version.
 until the worker reports a waiting build. It uses brass because a waiting build is not a failure,
 and it stays on the page until someone acts on it, which is why it is not a toast. `src/pwa` holds
 the framework-free store it reads through `useSyncExternalStore` and the single module that imports
-`virtual:pwa-register`; `App` only mounts the strip. The log footer carries `build 2.10.2` from
+`virtual:pwa-register`; `App` only mounts the strip. The page footer carries `build 2.10.2` from
 `src/lib/build.ts`, so a cached page can still be identified.
 
 `AdvancedDrawer` is a `Sheet`: a Radix dialog that slides in from the right, traps focus, locks the
@@ -337,6 +344,7 @@ app busy flag through `onBusyChange`.
 | `src/lib/hid/transfer.test.ts` | the full sequence, abort paths, busy lock, byte order, clock |
 | `src/lib/hid/time.test.ts` | clock body, year offset, weekday, input parser |
 | `src/lib/screen/animation.test.ts` | RGB565, header, delays, frame placement |
+| `src/lib/screen/render.test.ts` | RGB565 to RGBA, the whole panel, round trip |
 | `src/lib/lighting/record.test.ts` | solid-light bytes, colour order, ranges |
 | `src/lib/lighting/preview.test.ts` | effect motion, wave direction, rotation flip |
 | `src/lib/lighting/describe.test.ts` | confirmed-light wording, per-mode fields |
@@ -353,7 +361,8 @@ app busy flag through `onBusyChange`.
 | `src/lib/editor/describe.test.ts` | one pending line: top, media, Fn, cleared override |
 | `src/lib/profile/profile.test.ts` | bundle round-trip, bad files, dropped rows, locked Fn keys |
 | `src/lib/hid/wireless.test.ts` | frame, checksum, record, interface choice, patches, per-key frames, handshake retry |
-| `src/features/log/LogPanel.test.tsx` | copy confirmation, refused clipboard, empty log |
+| `src/features/log/LogDrawer.test.tsx` | copy confirmation, refused clipboard, empty log, clear |
+| `src/components/page-footer.test.tsx` | the build line and the repository link |
 | `src/features/profile/ProfileMenu.test.tsx` | export, confirm step, broken file |
 | `src/features/device/DevicePanel.test.tsx` | link wording, apply, last send, receiver limits |
 | `src/features/device/useDevice.test.ts` | granted-link choice, chooser, open, disconnect, receiver, no config interface |
@@ -361,7 +370,8 @@ app busy flag through `onBusyChange`.
 | `src/features/advanced/AdvancedDrawer.test.tsx` | each tab, close paths, busy state |
 | `src/features/screen/ClockCard.test.tsx` | clock modes, validation, status, busy state |
 | `src/features/screen/DateTimePicker.test.tsx` | day and time selection, Now, close |
-| `src/features/screen/ScreenPanel.test.tsx` | preview, custom input, send payload |
+| `src/features/screen/ScreenPanel.test.tsx` | clock preview, custom input, send payload, animation tab, picked file across tabs, USB-only badge |
+| `src/features/screen/AnimationStage.test.tsx` | empty state, frame timing, send follow, reduced motion |
 | `src/features/lighting/LightingPanel.test.tsx` | colour, brightness, preview labels, status, the Effect/Per-key switch |
 | `src/features/lighting/PerKeyPanel.test.tsx` | painting, eraser, fill and clear, unsent count, receiver limits |
 | `src/features/settings/store.test.ts` | change notification, delayed write, flush, reset |
