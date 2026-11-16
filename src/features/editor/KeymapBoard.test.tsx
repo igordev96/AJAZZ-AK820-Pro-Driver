@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { createInitialState } from '@/lib/editor';
+import type { EditorRow } from '@/lib/editor';
 import { FN_LOCKED } from '@/lib/keymap';
 import { KeymapBoard } from './KeymapBoard';
 
@@ -19,6 +20,16 @@ const renderBoard = (layer: 'top' | 'fn' = 'top', selected: number | null = null
     />,
   );
   return { onSelect, board: screen.getByRole('group', { name: /keyboard board/i }) };
+};
+
+const withUsage = (idx: number, usage: number, media = false) =>
+  createInitialState().top.map((row) => (row.idx === idx ? { ...row, usage, media } : row));
+
+const renderRows = (rows: readonly EditorRow[]) => {
+  render(
+    <KeymapBoard rows={rows} layer="top" selected={null} disabled={false} onSelect={vi.fn()} />,
+  );
+  return screen.getByRole('group', { name: /keyboard board/i });
 };
 
 describe('KeymapBoard', () => {
@@ -75,5 +86,29 @@ describe('KeymapBoard', () => {
 
     expect(fn).not.toHaveAttribute('data-changed');
     expect(fn).not.toHaveAttribute('data-pending');
+  });
+
+  it('keeps the factory legends on a board nothing changed', () => {
+    const { board } = renderBoard('top');
+
+    expect(within(board).getByRole('button', { name: 'CapsLock' })).toHaveTextContent('Caps');
+    expect(within(board).getByRole('button', { name: 'Shift_L' })).toHaveTextContent('Shift');
+    expect(within(board).getByRole('button', { name: '←' })).toHaveTextContent('←');
+  });
+
+  it('shows the usage on a key that differs from factory', () => {
+    const board = renderRows(withUsage(55, 0x04));
+    const cap = within(board).getByRole('button', { name: 'CapsLock' });
+
+    expect(cap).toHaveTextContent('A');
+    expect(cap).toHaveAttribute('data-changed', 'true');
+  });
+
+  it('labels a media remap with the record it will carry', () => {
+    const board = renderRows(withUsage(55, 0xcd, true));
+    const cap = within(board).getByRole('button', { name: 'CapsLock' });
+
+    expect(cap).toHaveTextContent('Media: Play/Pause');
+    expect(cap).toHaveAttribute('data-changed', 'true');
   });
 });

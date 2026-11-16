@@ -138,6 +138,17 @@
   }
 }
 
+@keyframes cap-scroll {
+  0%,
+  12% {
+    transform: translateX(0);
+  }
+  88%,
+  100% {
+    transform: translateX(min(0px, calc(100cqw - 100%)));
+  }
+}
+
 @keyframes sheet-in {
   from {
     transform: translateX(100%);
@@ -204,6 +215,14 @@
   animation: light-hue 8s linear infinite;
 }
 
+/* A legend wider than its cap travels left, rests at each end, and starts over.
+   white-space: nowrap makes the span as wide as its text, so the clamp below
+   stops its end on the cap edge; min() keeps a legend that fits still. */
+.cap-scroll {
+  white-space: nowrap;
+  animation: cap-scroll 5s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .light-wave,
   .light-twinkle,
@@ -211,6 +230,14 @@
     animation: none;
     opacity: 1;
     filter: none;
+  }
+
+  .cap-scroll {
+    animation: none;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .sheet-overlay,

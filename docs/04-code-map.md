@@ -252,7 +252,9 @@ utilities, so a palette change reaches it too.
 Visual states are separate: brass edge and brass legend mean "differs from factory", a brass dot
 means "not uploaded", an ivory edge means "selected", and a dashed cap means "firmware-owned on the
 Fn layer". Brass is never used as decoration: on the board the legend gives it meaning, and on a
-control it marks what the current link cannot do.
+control it marks what the current link cannot do. The legend text is the physical key name until the
+key differs from the factory table, and then it shows the usage the key now sends; a legend wider
+than its cap scrolls in place, and stops under reduced motion.
 
 The inspector mirrors the board and is the only place that edits a usage. The `Sends` picker is a
 searchable combobox grouped by the usage table, so a keyboard key, a media key or the Fn default

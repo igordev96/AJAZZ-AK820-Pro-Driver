@@ -6,6 +6,8 @@ import { isSymbolLabel, keycapLabel } from './keyLabels';
 
 const MAX_SCALE = 1.45;
 const MIN_SCALE = 0.6;
+/** Rough advance of one cap legend character at 8 px, where a long legend is drawn. */
+const CAP_CHAR_WIDTH = 4.2;
 
 type KeymapBoardProps = {
   rows: readonly EditorRow[];
@@ -69,7 +71,9 @@ export function KeymapBoard({ rows, layer, selected, disabled, onSelect }: Keyma
                 const pending = row.usage !== row.applied || row.media !== row.appliedMedia;
                 const custom = row.usage !== row.factory || row.media !== row.factoryMedia;
                 const isSelected = selected === row.idx;
-                const label = keycapLabel(row.name);
+                const label = custom ? usageLabel(row.usage, row.media) : keycapLabel(row.name);
+                // 4 px is the px-0.5 padding on each side, so this is the width the legend has.
+                const scrolls = label.length * CAP_CHAR_WIDTH > row.w - 4;
 
                 const title = locked
                   ? `${row.name}. Key index ${row.idx}. The firmware owns this Fn combination.`
@@ -93,7 +97,8 @@ export function KeymapBoard({ rows, layer, selected, disabled, onSelect }: Keyma
                     disabled={locked || disabled}
                     title={title}
                     className={cn(
-                      'absolute flex items-center justify-center overflow-hidden rounded-key border px-0.5 text-center leading-none transition-colors',
+                      'absolute flex items-center overflow-hidden rounded-key border px-0.5 text-center leading-none transition-colors',
+                      scrolls ? 'justify-start @container' : 'justify-center',
                       locked
                         ? 'cursor-not-allowed border-line/50 bg-surface/50 text-muted/35'
                         : cn(
@@ -120,7 +125,7 @@ export function KeymapBoard({ rows, layer, selected, disabled, onSelect }: Keyma
                     ) : null}
                     <span
                       className={cn(
-                        'whitespace-nowrap',
+                        scrolls ? 'cap-scroll' : 'whitespace-nowrap',
                         isSymbolLabel(label) ? 'font-mono' : 'font-medium',
                         label.length >= 5
                           ? 'text-[8px]'
@@ -128,6 +133,11 @@ export function KeymapBoard({ rows, layer, selected, disabled, onSelect }: Keyma
                             ? 'text-[9px]'
                             : 'text-[10px]',
                       )}
+                      style={
+                        scrolls
+                          ? { animationDuration: `${Math.max(4, Math.round(label.length / 2))}s` }
+                          : undefined
+                      }
                     >
                       {label}
                     </span>
