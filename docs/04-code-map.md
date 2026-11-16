@@ -259,7 +259,8 @@ than its cap scrolls in place, and stops under reduced motion.
 The inspector mirrors the board and is the only place that edits a usage. The `Sends` picker is a
 searchable combobox grouped by the usage table, so a keyboard key, a media key or the Fn default
 is a few letters away instead of a scroll through 200 rows. Its raw field accepts a token like
-`0x04` or `c:0xE2`. The layer tabs switch between `top` and `fn`. The pending bar stages the
+`0x04` or `c:0xE2`, and focusing it selects the token so that typing replaces it. The layer tabs
+switch between `top` and `fn`. The pending bar stages the
 upload and lists the keys it will carry, one `describePendingChange` line per row, capped at eight
 with a count for the rest. The list stays visible while disconnected, and it hides while the
 restore question is up. The restore confirmation lives beside it, and the log drawer keeps every

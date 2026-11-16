@@ -214,6 +214,7 @@ export function KeyInspector({
           aria-label="Raw usage"
           disabled={controlsDisabled}
           className="font-mono text-xs"
+          onFocus={(event) => event.currentTarget.select()}
           onBlur={(event) => commitRaw(event.currentTarget)}
           onKeyDown={(event) => {
             if (event.key === 'Enter') event.currentTarget.blur();

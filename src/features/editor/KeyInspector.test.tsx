@@ -87,6 +87,28 @@ describe('KeyInspector', () => {
     expect(onUsage).toHaveBeenCalledWith(0xe9, true);
   });
 
+  it('selects the token when the raw field takes focus', async () => {
+    const user = userEvent.setup();
+    render(
+      <KeyInspector
+        row={selectedTop()}
+        layer="top"
+        locked={false}
+        disabled={false}
+        onUsage={vi.fn()}
+        onReset={vi.fn()}
+        onInvalid={vi.fn()}
+      />,
+    );
+
+    const raw = screen.getByLabelText<HTMLInputElement>('Raw usage');
+    await user.click(raw);
+
+    expect(raw).toHaveFocus();
+    expect(raw.selectionStart).toBe(0);
+    expect(raw.selectionEnd).toBe('0x39'.length);
+  });
+
   it('reports malformed raw input and restores the current token', async () => {
     const user = userEvent.setup();
     const onInvalid = vi.fn();
