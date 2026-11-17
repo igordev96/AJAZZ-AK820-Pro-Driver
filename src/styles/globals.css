@@ -145,7 +145,7 @@
   }
   88%,
   100% {
-    transform: translateX(min(0px, calc(100cqw - 100%)));
+    transform: translateX(var(--cap-travel, 0px));
   }
 }
 
@@ -216,11 +216,11 @@
 }
 
 /* A legend wider than its cap travels left, rests at each end, and starts over.
-   white-space: nowrap makes the span as wide as its text, so the clamp below
-   stops its end on the cap edge; min() keeps a legend that fits still. */
+   The board measures the overflow and passes it in as --cap-travel, so a legend
+   the cap holds is never given this class. */
 .cap-scroll {
   white-space: nowrap;
-  animation: cap-scroll 5s linear infinite;
+  animation: cap-scroll var(--cap-duration, 6s) linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

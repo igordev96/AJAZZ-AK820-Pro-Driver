@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createInitialState } from '@/lib/editor';
 import type { EditorRow } from '@/lib/editor';
 import { FN_LOCKED } from '@/lib/keymap';
@@ -31,6 +31,23 @@ const renderRows = (rows: readonly EditorRow[]) => {
   );
   return screen.getByRole('group', { name: /keyboard board/i });
 };
+
+/**
+ * jsdom lays nothing out, so the board's own measurement is faked here: a 4 px
+ * advance per character inside a 26 px cap whose content box is 22 px. The
+ * board measures the cap, not the text, so the two numbers are enough.
+ */
+const stubLegendLayout = () => {
+  vi.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(26);
+  vi.spyOn(Element.prototype, 'scrollWidth', 'get').mockImplementation(function (this: Element) {
+    const text = this.textContent ?? '';
+    return 26 + Math.max(0, Math.round(text.length * 4) - 22);
+  });
+};
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('KeymapBoard', () => {
   it('renders all 81 keys and selects one', async () => {
@@ -110,5 +127,32 @@ describe('KeymapBoard', () => {
 
     expect(cap).toHaveTextContent('Media: Play/Pause');
     expect(cap).toHaveAttribute('data-changed', 'true');
+  });
+
+  it('scrolls the legend the cap cuts and leaves a legend that fits alone', () => {
+    stubLegendLayout();
+    const board = renderRows(withUsage(55, 0xcd, true));
+    const caps = within(board).getAllByRole('button');
+    const legend = within(within(board).getByRole('button', { name: 'CapsLock' })).getByText(
+      'Media: Play/Pause',
+    );
+
+    expect(legend).toHaveClass('cap-scroll');
+    expect(legend.style.getPropertyValue('--cap-travel')).toBe('-46px');
+    expect(legend.style.getPropertyValue('--cap-duration')).toBe('5.1s');
+    expect(caps.filter((cap) => cap.querySelector('.cap-scroll'))).toHaveLength(1);
+  });
+
+  it('gives a changed legend a fresh node so its travel starts at the cap edge', () => {
+    stubLegendLayout();
+    const props = { layer: 'top' as const, selected: null, disabled: false, onSelect: vi.fn() };
+    const { rerender } = render(<KeymapBoard rows={withUsage(55, 0xcd, true)} {...props} />);
+    const first = screen.getByRole('button', { name: 'CapsLock' }).lastElementChild;
+    rerender(<KeymapBoard rows={withUsage(55, 0xe9, true)} {...props} />);
+    const next = screen.getByRole('button', { name: 'CapsLock' }).lastElementChild;
+
+    expect(first).toHaveTextContent('Media: Play/Pause');
+    expect(next).toHaveTextContent('Media: Volume up');
+    expect(next).not.toBe(first);
   });
 });

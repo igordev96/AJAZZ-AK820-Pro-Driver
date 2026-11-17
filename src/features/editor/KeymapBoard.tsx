@@ -1,13 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { EditorRow, Layer } from '@/lib/editor';
 import { BOARD_HEIGHT, BOARD_WIDTH, FN_LOCKED, usageLabel } from '@/lib/keymap';
 import { cn } from '@/lib/utils';
+import { capScrollDuration, capScrollTravel } from './capScroll';
 import { isSymbolLabel, keycapLabel } from './keyLabels';
 
 const MAX_SCALE = 1.45;
 const MIN_SCALE = 0.6;
-/** Rough advance of one cap legend character at 8 px, where a long legend is drawn. */
-const CAP_CHAR_WIDTH = 4.2;
+
+const NO_TRAVEL: ReadonlyMap<number, number> = new Map();
 
 type KeymapBoardProps = {
   rows: readonly EditorRow[];
@@ -17,9 +19,16 @@ type KeymapBoardProps = {
   onSelect: (idx: number) => void;
 };
 
+function sameTravel(a: ReadonlyMap<number, number>, b: ReadonlyMap<number, number>): boolean {
+  if (a.size !== b.size) return false;
+  for (const [idx, distance] of a) if (b.get(idx) !== distance) return false;
+  return true;
+}
+
 export function KeymapBoard({ rows, layer, selected, disabled, onSelect }: KeymapBoardProps) {
   const container = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [travel, setTravel] = useState<ReadonlyMap<number, number>>(NO_TRAVEL);
 
   useEffect(() => {
     const element = container.current;
@@ -34,6 +43,43 @@ export function KeymapBoard({ rows, layer, selected, disabled, onSelect }: Keyma
 
     return () => observer.disconnect();
   }, []);
+
+  // A legend is measured, not guessed: at 8 px a character advances between
+  // 3.7 px and 5.1 px, so a character count cannot tell a legend the cap holds
+  // from one it cuts. The cap reports the overflow itself, and only that
+  // legend moves: a guess used to start an animation on a legend that fits,
+  // where the clamping keyframe then held it still for the whole session.
+  useLayoutEffect(() => {
+    const element = container.current;
+    if (!element) return;
+    let live = true;
+
+    const measure = () => {
+      if (!live) return;
+      const caps = new Map<string, HTMLElement>();
+      for (const cap of element.querySelectorAll<HTMLElement>('[data-key]')) {
+        caps.set(String(cap.dataset.key), cap);
+      }
+      const next = new Map<number, number>();
+      for (const row of rows) {
+        const cap = caps.get(String(row.idx));
+        if (!cap) continue;
+        const distance = capScrollTravel(cap.scrollWidth - cap.clientWidth);
+        if (distance > 0) next.set(row.idx, distance);
+      }
+      setTravel((current) => (sameTravel(current, next) ? current : next));
+    };
+
+    measure();
+    // The legend is drawn in IBM Plex, which can arrive after the first paint.
+    void document.fonts?.ready.then(measure);
+
+    return () => {
+      live = false;
+    };
+    // A new legend or a different layer changes the widths, and a click does
+    // not, because selecting a key keeps the row arrays.
+  }, [rows]);
 
   return (
     <div className="rounded-panel border border-line bg-surface p-2 sm:p-3">
@@ -72,8 +118,7 @@ export function KeymapBoard({ rows, layer, selected, disabled, onSelect }: Keyma
                 const custom = row.usage !== row.factory || row.media !== row.factoryMedia;
                 const isSelected = selected === row.idx;
                 const label = custom ? usageLabel(row.usage, row.media) : keycapLabel(row.name);
-                // 4 px is the px-0.5 padding on each side, so this is the width the legend has.
-                const scrolls = label.length * CAP_CHAR_WIDTH > row.w - 4;
+                const distance = travel.get(row.idx) ?? 0;
 
                 const title = locked
                   ? `${row.name}. Key index ${row.idx}. The firmware owns this Fn combination.`
@@ -92,13 +137,13 @@ export function KeymapBoard({ rows, layer, selected, disabled, onSelect }: Keyma
                     type="button"
                     aria-label={row.name}
                     aria-pressed={isSelected}
+                    data-key={row.idx}
                     data-changed={custom ? 'true' : undefined}
                     data-pending={pending ? 'true' : undefined}
                     disabled={locked || disabled}
                     title={title}
                     className={cn(
-                      'absolute flex items-center overflow-hidden rounded-key border px-0.5 text-center leading-none transition-colors',
-                      scrolls ? 'justify-start @container' : 'justify-center',
+                      'absolute flex items-center justify-start overflow-hidden rounded-key border px-0.5 text-center leading-none transition-colors',
                       locked
                         ? 'cursor-not-allowed border-line/50 bg-surface/50 text-muted/35'
                         : cn(
@@ -124,8 +169,14 @@ export function KeymapBoard({ rows, layer, selected, disabled, onSelect }: Keyma
                       />
                     ) : null}
                     <span
+                      // A keyed legend is a new node after a change, and a new
+                      // node owns a new animation: without this, a legend that
+                      // arrives on a cap that already scrolled starts halfway
+                      // through the pass it interrupted.
+                      key={label}
                       className={cn(
-                        scrolls ? 'cap-scroll' : 'whitespace-nowrap',
+                        'mx-auto whitespace-nowrap',
+                        distance > 0 && 'cap-scroll',
                         isSymbolLabel(label) ? 'font-mono' : 'font-medium',
                         label.length >= 5
                           ? 'text-[8px]'
@@ -134,8 +185,11 @@ export function KeymapBoard({ rows, layer, selected, disabled, onSelect }: Keyma
                             : 'text-[10px]',
                       )}
                       style={
-                        scrolls
-                          ? { animationDuration: `${Math.max(4, Math.round(label.length / 2))}s` }
+                        distance > 0
+                          ? ({
+                              '--cap-travel': `-${distance}px`,
+                              '--cap-duration': `${capScrollDuration(distance)}s`,
+                            } as CSSProperties)
                           : undefined
                       }
                     >

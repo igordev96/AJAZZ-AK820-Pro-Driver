@@ -168,6 +168,10 @@ WebHID won because it is the only option with zero install and a stable API for 
 * **A deploy can strand a tab.** Netlify replaces its hashed files on every deploy, so a tab or a
   bookmark holding an old `index.html` would ask for assets that no longer exist. Precaching the
   build removes that failure, which turned out to be the stronger reason for the offline work.
+* **A guessed width can freeze a feature.** The cap scroll decided overflow from an average
+  character width, so a wide cap got an animation for a legend it already held, and the clamping
+  keyframe then kept that legend still while the clock ran. The next legend inherited the clock and
+  appeared mid-pass. Measure the box the legend sits in.
 
 ## 5. Open threads
 
