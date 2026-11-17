@@ -1,5 +1,5 @@
 /** A legend has to stick out at least this far before moving it is worth the motion. */
-export const MIN_SCROLL_PX = 2;
+export const MIN_SCROLL_PX = 4;
 
 /** About nine pixels a second, so a long legend is not a slower legend. */
 const PX_PER_SECOND = 9;

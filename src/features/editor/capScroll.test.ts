@@ -5,6 +5,7 @@ describe('capScrollTravel', () => {
   it('moves a legend only when the cap really cuts it', () => {
     expect(capScrollTravel(0)).toBe(0);
     expect(capScrollTravel(1.9)).toBe(0);
+    expect(capScrollTravel(3.9)).toBe(0);
     expect(capScrollTravel(MIN_SCROLL_PX)).toBe(MIN_SCROLL_PX);
     expect(capScrollTravel(46)).toBe(46);
   });

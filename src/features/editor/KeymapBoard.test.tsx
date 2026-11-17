@@ -143,6 +143,15 @@ describe('KeymapBoard', () => {
     expect(caps.filter((cap) => cap.querySelector('.cap-scroll'))).toHaveLength(1);
   });
 
+  it('leaves a legend a couple of pixels over the cap still', () => {
+    stubLegendLayout();
+    const board = renderRows(withUsage(56, 0x49));
+    const cap = within(board).getByRole('button', { name: 'A' });
+
+    expect(cap).toHaveTextContent('Insert');
+    expect(cap.querySelector('.cap-scroll')).toBeNull();
+  });
+
   it('gives a changed legend a fresh node so its travel starts at the cap edge', () => {
     stubLegendLayout();
     const props = { layer: 'top' as const, selected: null, disabled: false, onSelect: vi.fn() };
